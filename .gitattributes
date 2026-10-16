@@ -1,0 +1,8 @@
+# Store normalized text in Git and use LF in ordinary working-tree files.
+* text=auto eol=lf
+
+# Windows launchers use CRLF on checkout; Git still stores LF.
+*.cmd text eol=crlf
+
+# Font resources must never undergo text conversion.
+*.ttf -text

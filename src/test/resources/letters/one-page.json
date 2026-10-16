@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "page": {
+    "size": "A4",
+    "marginsMm": { "top": 20, "right": 20, "bottom": 20, "left": 20 },
+    "topZoneMm": 25,
+    "bottomZoneMm": 15,
+    "signatureZoneMm": 32
+  },
+  "defaultStyle": { "fontFamily": "Helvetica", "fontSizePt": 11, "color": "#222222" },
+  "sections": [
+    {
+      "name": "body",
+      "blocks": [
+        { "type": "heading", "runs": [{ "text": "Subject: confirmation" }] },
+        { "type": "paragraph", "runs": [
+          { "text": "Dear Sir or Madam, we " },
+          { "text": "confirm", "style": { "bold": true } },
+          { "text": " receipt of your request." }
+        ] }
+      ]
+    }
+  ],
+  "fixedElements": [
+    {
+      "id": "header",
+      "zone": "TOP",
+      "pages": "ALL",
+      "boundsMm": { "x": 0, "y": 0, "width": 170, "height": 20 },
+      "blocks": [{ "type": "paragraph", "runs": [{ "text": "Organization" }] }]
+    }
+  ],
+  "signature": {
+    "placement": "BOTTOM_LAST",
+    "boundsMm": { "x": 0, "y": 2, "width": 100, "height": 25 },
+    "blocks": [{ "type": "paragraph", "runs": [{ "text": "The Director" }] }]
+  }
+}

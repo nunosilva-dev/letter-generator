@@ -1,0 +1,20 @@
+{
+  "customerName": "ANA EXEMPLO",
+  "addressLine": "RUA DA ENERGIA, 24",
+  "postalCode": "1000-001 LISBOA",
+  "year": "2024",
+  "contractNumber": "123456789",
+  "effectiveDate": "1 de janeiro de 2024",
+  "previousDate": "31 de dezembro de 2023",
+  "discountPercentage": "15",
+  "contractPower": "3,45",
+  "previousEnergyPrice": "0,2008",
+  "energyPrice": "0,1632",
+  "previousPowerPrice": "0,0645",
+  "powerPrice": "0,0815",
+  "deliveryPoint": "PT00 0000 0000 0000 0000 XX",
+  "contactNumber": "213 53 53 53",
+  "directorName": "Duarte Bettencourt",
+  "directorRole": "Diretor Comercial",
+  "companyName": "EDP Comercial & Energia"
+}

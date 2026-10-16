@@ -1,0 +1,44 @@
+<letter page="A4" margins-mm="10" header-height-mm="55" footer-height-mm="14"
+        style="font-family:ReferenceSans;font-size:9pt;line-height:1.25;margin-bottom:2.2mm">
+  <logo><img src="asset:company-logo" width="55mm" height="22mm"></logo>
+  <header style="font-size:8pt;text-align:right">
+    <p style="margin-top:20mm">${customerName}<br>${addressLine}<br>${postalCode}</p>
+  </header>
+  <main>
+    <p style="font-family:Times;font-style:italic">Caro/a cliente,</p>
+    <p><strong>O preço do seu contrato de eletricidade vai ser atualizado em ${year} (Contrato ${contractNumber})</strong></p>
+    <p>A EDP Comercial vai <strong>baixar a sua componente de preço</strong>, denominada “Energia e Estrutura Comercial”.</p>
+    <p>Esta redução entra em vigor a ${effectiveDate} e representa, em média, para os clientes residenciais da EDP Comercial, uma <strong>descida de ${discountPercentage}% na componente de preço definida pela EDP Comercial.</strong> Pode consultar os valores atualizados desta componente na tabela abaixo.</p>
+    <p>Sobre esta alteração, deverá ainda ser considerado o impacto na sua fatura de eletricidade da atualização das Tarifas de Acesso às Redes (TAR), que serão definidas pela Entidade Reguladora dos Serviços Energéticos (ERSE) durante o mês de dezembro, com entrada em vigor a partir de 1 de janeiro, e que poderá consultar posteriormente na página de perguntas frequentes em edp.pt ou junto dos canais habituais de apoio ao cliente.</p>
+    <p>Comunicamos também que os descontos de que dispõe vão manter-se e passam a incidir sobre este novo preço, tal como previsto nas suas condições contratuais.</p>
+    <p>Informamos que, caso não aceite as novas condições, pode opor-se à renovação do seu contrato no prazo de 30 dias, sem quaisquer encargos.</p>
+    <p><strong>Conheça a sua nova componente de preço “Energia e Estrutura Comercial”</strong></p>
+    <p style="font-size:8pt;margin-bottom:1mm">Potência ${contractPower} kVA | Opção Simples</p>
+    <table column-weights="1,1,1" style="font-size:8pt;line-height:1.15;margin-bottom:1mm">
+      <thead style="background-color:#10384A;color:#98BC6A">
+        <tr>
+          <th style="font-weight:normal">Energia e Estrutura Comercial</th>
+          <th style="font-weight:normal;text-align:center">Valor em vigor até<br>${previousDate}</th>
+          <th style="font-weight:normal;text-align:center">Valor em vigor a partir de<br>${effectiveDate}</th>
+        </tr>
+      </thead>
+      <tbody style="background-color:#E9EAEA">
+        <tr><td>Energia (€/kWh)</td><td style="text-align:center">${previousEnergyPrice}</td><td style="text-align:center">${energyPrice}</td></tr>
+        <tr><td>Potência (€/dia)</td><td style="text-align:center">${previousPowerPrice}</td><td style="text-align:center">${powerPrice}</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:7pt;margin-bottom:2mm">Nota: os preços apresentados na tabela apenas refletem a componente de preço final definida pela EDP Comercial, denominada “Energia e Estrutura Comercial”, não sendo diretamente comparáveis com os valores apresentados na fatura de eletricidade. A esta componente acrescem as TAR, a definir pela ERSE para entrada em vigor a 1 de janeiro.</p>
+    <p style="font-size:8pt">CPE (Código de Ponto de Entrega): ${deliveryPoint}</p>
+    <p><strong>Caso tenha alguma questão, não hesite em falar connosco</strong></p>
+    <p>Para esclarecer questões, fale connosco através da área de apoio ao cliente em edp.pt, da app EDP, da linha de atendimento ${contactNumber} (dias úteis das 9h às 20h | chamada para a rede fixa nacional), ou das nossas lojas.</p>
+  </main>
+  <signature>
+    <p style="font-size:8pt;margin-bottom:1mm">Com os melhores cumprimentos,</p>
+    <p style="font-family:Times;font-size:16pt;font-style:italic;margin-bottom:1mm">${directorName}</p>
+    <p style="font-size:8pt;margin-bottom:0">${directorName}<br>${directorRole}</p>
+  </signature>
+  <footer style="text-align:center;font-size:6pt;color:#666666">
+    <img src="asset:footer-banner" width="100%" height="5mm" style="text-align:center">
+    <p style="margin-top:1mm;margin-bottom:0">${companyName} | Exemplo com dados fictícios</p>
+  </footer>
+</letter>
