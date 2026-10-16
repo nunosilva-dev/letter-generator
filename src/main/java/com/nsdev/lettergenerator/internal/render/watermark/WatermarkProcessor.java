@@ -8,7 +8,7 @@ import com.nsdev.lettergenerator.internal.layout.Units;
 import com.nsdev.lettergenerator.model.watermark.ImageWatermark;
 import com.nsdev.lettergenerator.model.watermark.TextWatermark;
 import com.nsdev.lettergenerator.model.watermark.Watermark;
-import java.awt.Color;
+import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;

@@ -1,8 +1,6 @@
 package com.nsdev.lettergenerator.integration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.nsdev.lettergenerator.LetterPdfGenerator;
 import com.nsdev.lettergenerator.exception.InvalidLetterException;

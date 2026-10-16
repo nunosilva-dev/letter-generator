@@ -1,11 +1,7 @@
 package com.nsdev.lettergenerator.internal.template;
 
 import com.nsdev.lettergenerator.builder.LetterBuilder;
-import com.nsdev.lettergenerator.internal.markup.HtmlBlocks;
-import com.nsdev.lettergenerator.internal.markup.HtmlImages;
-import com.nsdev.lettergenerator.internal.markup.HtmlParser;
-import com.nsdev.lettergenerator.internal.markup.HtmlStyles;
-import com.nsdev.lettergenerator.internal.markup.MarkupSupport;
+import com.nsdev.lettergenerator.internal.markup.*;
 import com.nsdev.lettergenerator.model.LetterDocument;
 import com.nsdev.lettergenerator.model.block.Block;
 import com.nsdev.lettergenerator.model.layout.PageSelector;
@@ -14,11 +10,7 @@ import com.nsdev.lettergenerator.model.style.Style;
 import com.nsdev.lettergenerator.model.watermark.ImageWatermark;
 import com.nsdev.lettergenerator.model.watermark.TextWatermark;
 import com.nsdev.lettergenerator.model.watermark.Watermark;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import org.jsoup.nodes.Comment;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.TextNode;

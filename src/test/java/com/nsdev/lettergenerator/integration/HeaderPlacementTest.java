@@ -3,9 +3,7 @@ package com.nsdev.lettergenerator.integration;
 import static com.nsdev.lettergenerator.fixtures.LetterFixtures.png;
 import static com.nsdev.lettergenerator.fixtures.PdfTestSupport.renderFirst;
 import static com.nsdev.lettergenerator.fixtures.PdfTestSupport.text;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.nsdev.lettergenerator.Letter;
 import com.nsdev.lettergenerator.LetterPdfGenerator;

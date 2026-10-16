@@ -1,23 +1,10 @@
 package com.nsdev.lettergenerator.builder;
 
-import com.nsdev.lettergenerator.internal.builder.BuilderChecks;
-import com.nsdev.lettergenerator.internal.builder.HeaderLayout;
-import com.nsdev.lettergenerator.internal.builder.ImageBlocks;
-import com.nsdev.lettergenerator.internal.builder.LetterRegions;
-import com.nsdev.lettergenerator.internal.builder.PlainText;
+import com.nsdev.lettergenerator.internal.builder.*;
 import com.nsdev.lettergenerator.model.LetterDocument;
 import com.nsdev.lettergenerator.model.Section;
-import com.nsdev.lettergenerator.model.block.Block;
-import com.nsdev.lettergenerator.model.block.Heading;
-import com.nsdev.lettergenerator.model.block.ImageBlock;
-import com.nsdev.lettergenerator.model.block.PageBreakBlock;
-import com.nsdev.lettergenerator.model.block.TableBlock;
-import com.nsdev.lettergenerator.model.layout.Bounds;
-import com.nsdev.lettergenerator.model.layout.FixedElement;
-import com.nsdev.lettergenerator.model.layout.Margins;
-import com.nsdev.lettergenerator.model.layout.PageSize;
-import com.nsdev.lettergenerator.model.layout.Signature;
-import com.nsdev.lettergenerator.model.layout.SignaturePlacement;
+import com.nsdev.lettergenerator.model.block.*;
+import com.nsdev.lettergenerator.model.layout.*;
 import com.nsdev.lettergenerator.model.style.Style;
 import com.nsdev.lettergenerator.model.style.TextAlign;
 import com.nsdev.lettergenerator.model.text.TextRun;
@@ -27,11 +14,7 @@ import com.nsdev.lettergenerator.signature.SignatureContent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Mutable builder for ordinary application letters. Content calls append in order; configuration
