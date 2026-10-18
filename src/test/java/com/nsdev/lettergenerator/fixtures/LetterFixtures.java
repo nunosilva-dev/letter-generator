@@ -4,12 +4,16 @@ import com.nsdev.lettergenerator.model.LetterDocument;
 import com.nsdev.lettergenerator.model.Section;
 import com.nsdev.lettergenerator.model.block.Block;
 import com.nsdev.lettergenerator.model.block.Paragraph;
-import com.nsdev.lettergenerator.model.layout.*;
+import com.nsdev.lettergenerator.model.layout.Bounds;
+import com.nsdev.lettergenerator.model.layout.FixedElement;
+import com.nsdev.lettergenerator.model.layout.PageSelector;
+import com.nsdev.lettergenerator.model.layout.PageSpec;
+import com.nsdev.lettergenerator.model.layout.Signature;
+import com.nsdev.lettergenerator.model.layout.SignaturePlacement;
+import com.nsdev.lettergenerator.model.layout.Zone;
 import com.nsdev.lettergenerator.model.text.TextRun;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
@@ -77,6 +81,6 @@ public final class LetterFixtures {
     }
 
     public static String onePageJson() throws Exception {
-        return Files.readString(Path.of("src/test/resources/letters/one-page.json"));
+        return TestResources.text("letters/one-page.json");
     }
 }

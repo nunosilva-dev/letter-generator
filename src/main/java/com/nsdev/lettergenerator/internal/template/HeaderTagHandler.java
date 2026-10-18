@@ -9,10 +9,16 @@ import java.util.Locale;
 import org.jsoup.nodes.Element;
 
 /** Applies template header options before its markup is resolved against the final header box. */
-final class TemplateHeader {
-    private TemplateHeader() {}
+final class HeaderTagHandler implements TemplateTagHandler {
+    @Override
+    public String tagName() {
+        return "header";
+    }
 
-    static void apply(LetterBuilder builder, Element element, Style defaults) {
+    @Override
+    public void handle(Element element, TemplateContext context) {
+        LetterBuilder builder = context.builder();
+        Style defaults = context.page().defaults();
         MarkupSupport.attributes(element, "align", "width-mm", "height-mm", "x-mm", "y-mm");
         Style inherited = defaults;
         if (element.hasAttr("align")) {

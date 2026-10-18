@@ -31,7 +31,7 @@ public final class HeaderPlacementExamples {
         var positioned =
                 Letter.builder()
                         .margins(new Margins(15, 18, 17, 22))
-                        .header("ANA EXEMPLO\nRUA DA ENERGIA, 24\n1000-001 LISBOA")
+                        .header("CLIENTE EXEMPLO\nMORADA FICTÍCIA, 00\n0000-000 LOCALIDADE")
                         .headerBoundsMm(88, 23, 78, 28)
                         .heading("Address-window placement example")
                         .body(

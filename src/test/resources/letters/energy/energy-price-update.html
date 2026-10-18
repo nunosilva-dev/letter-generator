@@ -1,0 +1,40 @@
+<letter page="A4" margins-mm="10" footer-height-mm="14"
+        style="font-family:ReferenceSans;font-size:9pt;color:#222222;line-height:1.2;margin-bottom:2mm">
+  <logo><img src="asset:company-logo" width="55mm" height="22mm"></logo>
+  <header align="right" x-mm="110" y-mm="20" width-mm="80" height-mm="35" style="font-size:8pt">
+    <p>${customerName}<br>${addressLine}<br>${postalCode}</p>
+  </header>
+  <main>
+    <p>Caro/a cliente,</p>
+    <h3 style="font-size:9pt">O preço do seu contrato de eletricidade vai ser atualizado em ${year} (Contrato ${contractNumber})</h3>
+    <p>A ${companyName} vai baixar a sua componente de preço, denominada “Energia e Estrutura Comercial”.</p>
+    <p>Esta redução entra em vigor a ${effectiveDate} e representa, em média, para os clientes residenciais da ${companyName}, uma descida de ${discountPercentage}% na componente de preço definida pela ${companyName}. Pode consultar os valores atualizados desta componente na tabela abaixo.</p>
+    <p>Sobre esta alteração, deverá ainda ser considerado o impacto na sua fatura de eletricidade da atualização das Tarifas de Acesso às Redes (TAR), definidas pela entidade reguladora durante o mês de dezembro, com entrada em vigor a partir de 1 de janeiro. Consulte a página de perguntas frequentes em ${website} ou os nossos canais de apoio.</p>
+    <p>Comunicamos também que os descontos de que dispõe vão manter-se e passam a incidir sobre este novo preço, tal como previsto nas suas condições contratuais.</p>
+    <p>Informamos que, caso não aceite as novas condições, pode opor-se à renovação do seu contrato no prazo de 30 dias, sem quaisquer encargos.</p>
+    <h3 style="font-size:9pt">Conheça a sua nova componente de preço “Energia e Estrutura Comercial”</h3>
+    <p>Potência ${contractPower} kVA | Opção Simples</p>
+    <table column-weights="1,1,1" style="font-size:8.5pt;line-height:1.15">
+      <thead style="background-color:#10384A;color:#98BC6A;font-weight:normal;text-align:center;font-size:8pt">
+        <tr><th style="font-weight:normal">Energia e Estrutura Comercial</th><th style="font-weight:normal">Valor em vigor até<br>${previousDate}</th><th style="font-weight:normal">Valor em vigor a partir de<br>${effectiveDate}</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Energia (€/kWh)</td><td>${previousEnergyPrice}</td><td>${energyPrice}</td></tr>
+        <tr><td>Potência (€/dia)</td><td>${previousPowerPrice}</td><td>${powerPrice}</td></tr>
+      </tbody>
+    </table>
+    <p>Nota: os preços apresentados na tabela apenas refletem a componente de preço definida pela ${companyName}, denominada “Energia e Estrutura Comercial”, não sendo diretamente comparáveis com os valores apresentados na fatura. A esta componente acrescem as TAR, a definir pela entidade reguladora para entrada em vigor a 1 de janeiro.</p>
+    <p>CPE (Código de Ponto de Entrega): ${deliveryPoint}</p>
+    <h3 style="font-size:9pt">Caso tenha alguma questão, não hesite em falar connosco</h3>
+    <p>Para esclarecer questões, fale connosco através da área de apoio ao cliente em ${website}, da aplicação de demonstração, da linha de atendimento ${contactNumber} (dias úteis das 9h às 20h | contacto fictício), ou dos nossos canais de apoio.</p>
+  </main>
+  <signature placement="bottom-last" height-mm="25">
+    <p style="font-size:8pt;margin-bottom:1mm">Com os melhores cumprimentos,</p>
+    <p style="font-family:Times;font-size:16pt;font-style:italic;line-height:1.1;margin-bottom:1mm">&nbsp;${directorName}</p>
+    <p style="font-size:8pt;margin-bottom:0">${directorName}<br>${directorRole}</p>
+  </signature>
+  <footer style="text-align:center;font-size:6pt;color:#666666">
+    <img src="asset:footer-banner" width="100%" height="5mm">
+    <p style="margin-top:1mm;margin-bottom:0">${companyName} | Dados totalmente fictícios</p>
+  </footer>
+</letter>

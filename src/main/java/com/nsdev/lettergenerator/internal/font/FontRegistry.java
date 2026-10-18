@@ -2,12 +2,17 @@ package com.nsdev.lettergenerator.internal.font;
 
 import com.nsdev.lettergenerator.exception.InvalidLetterException;
 import com.nsdev.lettergenerator.font.FontVariant;
-import java.awt.*;
+import java.awt.Font;
+import java.awt.FontFormatException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /** Validated snapshot of registered TrueType faces, safe to share between generation calls. */
 public final class FontRegistry {

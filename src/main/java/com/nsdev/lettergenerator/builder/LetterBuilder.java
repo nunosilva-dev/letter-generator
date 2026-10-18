@@ -1,10 +1,24 @@
 package com.nsdev.lettergenerator.builder;
 
-import com.nsdev.lettergenerator.internal.builder.*;
+import com.nsdev.lettergenerator.internal.builder.BuilderChecks;
+import com.nsdev.lettergenerator.internal.builder.HeaderLayout;
+import com.nsdev.lettergenerator.internal.builder.ImageBlocks;
+import com.nsdev.lettergenerator.internal.builder.LetterRegions;
+import com.nsdev.lettergenerator.internal.builder.PlainText;
 import com.nsdev.lettergenerator.model.LetterDocument;
 import com.nsdev.lettergenerator.model.Section;
-import com.nsdev.lettergenerator.model.block.*;
-import com.nsdev.lettergenerator.model.layout.*;
+import com.nsdev.lettergenerator.model.block.Block;
+import com.nsdev.lettergenerator.model.block.Heading;
+import com.nsdev.lettergenerator.model.block.ImageBlock;
+import com.nsdev.lettergenerator.model.block.PageBreakBlock;
+import com.nsdev.lettergenerator.model.block.TableBlock;
+import com.nsdev.lettergenerator.model.layout.Bounds;
+import com.nsdev.lettergenerator.model.layout.FixedElement;
+import com.nsdev.lettergenerator.model.layout.Margins;
+import com.nsdev.lettergenerator.model.layout.PageSize;
+import com.nsdev.lettergenerator.model.layout.PageSpec;
+import com.nsdev.lettergenerator.model.layout.Signature;
+import com.nsdev.lettergenerator.model.layout.SignaturePlacement;
 import com.nsdev.lettergenerator.model.style.Style;
 import com.nsdev.lettergenerator.model.style.TextAlign;
 import com.nsdev.lettergenerator.model.text.TextRun;
@@ -14,7 +28,11 @@ import com.nsdev.lettergenerator.signature.SignatureContent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Mutable builder for ordinary application letters. Content calls append in order; configuration
@@ -54,6 +72,8 @@ public final class LetterBuilder {
     private HeaderLayout headerLayout = HeaderLayout.defaults();
     private double footerHeight = DEFAULT_FOOTER_HEIGHT_MM;
     private ContentPart signature;
+    private SignaturePlacement signaturePlacement = SignaturePlacement.FLOW;
+    private double signatureHeight = DEFAULT_SIGNATURE_HEIGHT_MM;
     private Watermark watermark;
 
     public LetterBuilder page(PageSize size) {
@@ -189,6 +209,20 @@ public final class LetterBuilder {
                                 blocks.addAll(
                                         BuilderChecks.required(part, "signature part").blocks()));
         signature = new ContentPart.Blocks(blocks);
+        return this;
+    }
+
+    /** FLOW follows the body; BOTTOM_LAST anchors above the footer on the final page only. */
+    public LetterBuilder signaturePlacement(SignaturePlacement value) {
+        signaturePlacement = BuilderChecks.required(value, "signature placement");
+        return this;
+    }
+
+    /**
+     * Signature content height in millimeters; reserves this space for BOTTOM_LAST (default 20).
+     */
+    public LetterBuilder signatureHeightMm(double value) {
+        signatureHeight = BuilderChecks.positive(value, "signature height");
         return this;
     }
 
@@ -328,13 +362,26 @@ public final class LetterBuilder {
                 signature == null
                         ? null
                         : new Signature(
-                                SignaturePlacement.FLOW,
-                                signature.resolve(
-                                        assets, width, DEFAULT_SIGNATURE_HEIGHT_MM, false, null),
-                                null);
+                                signaturePlacement,
+                                signature.resolve(assets, width, signatureHeight, false, null),
+                                signaturePlacement == SignaturePlacement.BOTTOM_LAST
+                                        ? new Bounds(0, 0, width, signatureHeight)
+                                        : null);
+        PageSpec arrangedPage = layout.page();
+        double signatureZone =
+                builtSignature != null && signaturePlacement == SignaturePlacement.BOTTOM_LAST
+                        ? signatureHeight
+                        : 0;
+        PageSpec builtPage =
+                new PageSpec(
+                        arrangedPage.size(),
+                        arrangedPage.marginsMm(),
+                        arrangedPage.topZoneMm(),
+                        arrangedPage.bottomZoneMm(),
+                        signatureZone);
         return new LetterDocument(
                 LetterDocument.SUPPORTED_SCHEMA_VERSION,
-                layout.page(),
+                builtPage,
                 style,
                 List.of(new Section(BODY_SECTION_NAME, null, bodyBlocks)),
                 layout.elements(),

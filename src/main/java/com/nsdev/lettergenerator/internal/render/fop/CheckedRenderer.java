@@ -2,10 +2,13 @@ package com.nsdev.lettergenerator.internal.render.fop;
 
 import com.nsdev.lettergenerator.internal.layout.Units;
 import com.nsdev.lettergenerator.internal.render.fo.PageMaster;
-import java.awt.*;
+import java.awt.Rectangle;
 import java.io.IOException;
-import java.util.*;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import org.apache.fop.apps.FOPException;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.area.BlockViewport;

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.nsdev.lettergenerator.LetterPdfGenerator;
 import com.nsdev.lettergenerator.exception.InvalidLetterException;
 import com.nsdev.lettergenerator.exception.PdfGenerationException;
+import com.nsdev.lettergenerator.fixtures.TestResources;
 import com.nsdev.lettergenerator.font.FontVariant;
 import com.nsdev.lettergenerator.model.LetterDocument;
 import com.nsdev.lettergenerator.model.Section;
@@ -33,7 +34,7 @@ class FontRenderingTest {
     @Test
     void loadsPathAndClasspathFontsAndSnapshotsBytesAtBuild() throws Exception {
         Path path = temp.resolve("regular.ttf");
-        Files.copy(Path.of("src/test/resources/fonts/DejaVuSans.ttf"), path);
+        Files.write(path, TestResources.bytes("fonts/DejaVuSans.ttf"));
         var generator =
                 LetterPdfGenerator.builder()
                         .registerFont("Custom", FontVariant.REGULAR, path)

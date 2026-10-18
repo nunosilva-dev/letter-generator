@@ -1,0 +1,21 @@
+{
+  "customerName": "CLIENTE EXEMPLO",
+  "addressLine": "MORADA FICTÍCIA, 00",
+  "postalCode": "0000-000 LOCALIDADE",
+  "year": "2024",
+  "contractNumber": "DEMO-000001",
+  "effectiveDate": "1 de janeiro de 2024",
+  "previousDate": "31 de dezembro de 2023",
+  "discountPercentage": "15",
+  "contractPower": "3,45",
+  "previousEnergyPrice": "0,2008",
+  "energyPrice": "0,1632",
+  "previousPowerPrice": "0,0645",
+  "powerPrice": "0,0815",
+  "deliveryPoint": "DEMO-PT-00000000",
+  "contactNumber": "000 000 000",
+  "directorName": "RESPONSÁVEL EXEMPLO",
+  "directorRole": "Direção de Apoio",
+  "companyName": "Energia Exemplo",
+  "website": "energia.example"
+}

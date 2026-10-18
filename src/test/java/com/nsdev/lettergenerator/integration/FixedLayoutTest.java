@@ -1,13 +1,24 @@
 package com.nsdev.lettergenerator.integration;
 
-import static com.nsdev.lettergenerator.fixtures.LetterFixtures.*;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.document;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.layout;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.paragraph;
 import static com.nsdev.lettergenerator.fixtures.PdfTestSupport.text;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.nsdev.lettergenerator.LetterPdfGenerator;
 import com.nsdev.lettergenerator.exception.PdfGenerationException;
 import com.nsdev.lettergenerator.model.LetterDocument;
-import com.nsdev.lettergenerator.model.layout.*;
+import com.nsdev.lettergenerator.model.layout.Bounds;
+import com.nsdev.lettergenerator.model.layout.FixedElement;
+import com.nsdev.lettergenerator.model.layout.PageSelector;
+import com.nsdev.lettergenerator.model.layout.Signature;
+import com.nsdev.lettergenerator.model.layout.SignaturePlacement;
+import com.nsdev.lettergenerator.model.layout.Zone;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

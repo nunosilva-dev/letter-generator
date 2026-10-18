@@ -1,6 +1,6 @@
 # Letter Generator
 
-A framework-free Java 17 library that turns Java objects, HTML templates or JSON into PDF bytes. Apache FOP composes and paginates the letter; PDFBox runs only when a watermark is requested. Your application supplies content, styles and assets, manages template storage, and decides where to save or send the PDF.
+A framework-free Java 17 library that turns Java objects, HTML templates or JSON into PDF bytes. Apache FOP composes and paginates the letter; PDFBox runs only when a watermark is requested. Supply content, styles and assets to generate complete PDF bytes.
 
 This README is the complete usage guide for `com.nsdev:letter-generator:1.0.0-SNAPSHOT`.
 
@@ -17,19 +17,18 @@ Follow the guide for a first integration, or jump to a task:
 - [9. Tables and lists](#9-tables-and-lists)
 - [10. Images and named assets](#10-images-and-named-assets)
 - [11. Signatures](#11-signatures)
-- [12. Stored HTML templates and placeholders](#12-stored-html-templates-and-placeholders)
+- [12. HTML templates and placeholders](#12-html-templates-and-placeholders)
 - [13. Fonts: defaults, embedding and Unicode](#13-fonts-defaults-embedding-and-unicode)
-- [14. Database integration and template versions](#14-database-integration-and-template-versions)
-- [15. Country and stationery variations](#15-country-and-stationery-variations)
-- [16. Watermarks](#16-watermarks)
-- [17. Advanced fixed elements and last-page signatures](#17-advanced-fixed-elements-and-last-page-signatures)
-- [18. JSON input](#18-json-input)
-- [19. Application integration and concurrency](#19-application-integration-and-concurrency)
-- [20. Errors and troubleshooting](#20-errors-and-troubleshooting)
-- [21. Run the examples and inspect output](#21-run-the-examples-and-inspect-output)
-- [22. Public API reference](#22-public-api-reference)
-- [23. Supported scope and limits](#23-supported-scope-and-limits)
-- [24. Development and code quality](#24-development-and-code-quality)
+- [14. Country and stationery variations](#14-country-and-stationery-variations)
+- [15. Watermarks](#15-watermarks)
+- [16. Advanced fixed elements and last-page signatures](#16-advanced-fixed-elements-and-last-page-signatures)
+- [17. JSON input](#17-json-input)
+- [18. Application integration and concurrency](#18-application-integration-and-concurrency)
+- [19. Errors and troubleshooting](#19-errors-and-troubleshooting)
+- [20. Run the examples and inspect output](#20-run-the-examples-and-inspect-output)
+- [21. Public API reference](#21-public-api-reference)
+- [22. Supported scope and limits](#22-supported-scope-and-limits)
+- [23. Development and code quality](#23-development-and-code-quality)
 
 ## 1. Install and build
 
@@ -114,10 +113,10 @@ All input paths produce the same immutable document model and use the same valid
 | Situation | Entry point | Why |
 | --- | --- | --- |
 | Application assembles ordinary letter content | `Letter.builder()` | Content-first methods and layout defaults |
-| A database stores an editable template with `${key}` | `Letter.template(markup).values(map)` | Integrated literal-value substitution and named assets |
+| A letter template contains `${key}` placeholders | `Letter.template(markup).values(map)` | Integrated literal-value substitution and named assets |
 | Application already produced resolved markup | `Letter.fromHtml(markup)` | Explicitly performs no substitution |
 | Most content is plain Java, some is formatted markup | `bodyHtml`, `headerHtml`, `footerHtml`, `signatureHtml` | Mix formatted fragments into fluent construction |
-| Exact page selectors, multiple fixed boxes or bottom-last signature | Immutable model records | Full geometry contract |
+| Exact page selectors or multiple fixed boxes | Immutable model records | Full geometry contract |
 | An application boundary exchanges structured documents | `generator.generateJson(json)` | Strict versioned JSON model |
 
 Plain `.body("<strong>Hello</strong>")` prints those characters literally. To interpret supported markup, use `.bodyHtml(...)` or a template API.
@@ -204,7 +203,7 @@ Calling `headerStyle` with only a color/font change preserves the alignment sele
 ```java
 var letter = Letter.builder()
     .margins(new Margins(15, 18, 17, 22))
-    .header("ANA EXEMPLO\nRUA DA ENERGIA, 24\n1000-001 LISBOA")
+    .header("CLIENTE EXEMPLO\nMORADA FICTÍCIA, 00\n0000-000 LOCALIDADE")
     .headerBoundsMm(88, 23, 78, 28)
     .body("Dear Ana,\n\nYour request has been received.")
     .build();
@@ -263,7 +262,7 @@ For an exact box, supply all four dimensions:
 
 `align` is optional with exact bounds and affects content alignment there. Values use millimeters without a unit suffix. Each attribute can contain a `${key}` placeholder. Supplying only x or y, or an incomplete exact rectangle, is an error. Header-local `height-mm` overrides root `header-height-mm`. CSS `text-align` controls content only; it can override the default supplied by `align`.
 
-The fluent header repeats on every page. For a first-page address block and a different following-page header, use [advanced fixed elements](#17-advanced-fixed-elements-and-last-page-signatures).
+The fluent header repeats on every page. For a first-page address block and a different following-page header, use [advanced fixed elements](#16-advanced-fixed-elements-and-last-page-signatures).
 
 ## 6. Footers and logos
 
@@ -485,9 +484,33 @@ Signature parts stack in argument order and flow after the body. The group stays
 
 Use `signatureHtml(...)` for rich markup or `signatureBlocks(...)` for explicit blocks. Signature content may contain images and styled text; it cannot contain page breaks. A template uses `<signature>...</signature>`.
 
-For a signature anchored near the bottom of the last page, use `SignaturePlacement.BOTTOM_LAST` and an explicit signature zone as shown in [section 17](#17-advanced-fixed-elements-and-last-page-signatures). Image/text signatures here are visible content, not cryptographic PDF signatures.
+To anchor the signature above the footer on the final page, select the existing `BOTTOM_LAST` preset. The fluent builder reserves the full inner-page width and the configured height automatically:
 
-## 12. Stored HTML templates and placeholders
+```java
+import com.nsdev.lettergenerator.model.layout.SignaturePlacement;
+
+var letter = Letter.builder()
+    .body("Your letter content")
+    .signaturePlacement(SignaturePlacement.BOTTOM_LAST)
+    .signatureHeightMm(25)
+    .signature(TextSignature.of("Jane Smith\nCustomer Services"))
+    .footer("Example Company")
+    .build();
+```
+
+The default placement is `FLOW`. `signatureHeightMm` defaults to 20 mm, must be finite and positive, and also controls the available height for signature HTML/images. With `BOTTOM_LAST`, the builder reserves that height only when signature content is present. Placement and height options work with `signature`, `signatureHtml`, and `signatureBlocks`, regardless of call order. If the final body content cannot fit beside the reserved signature area, an additional last page may be needed.
+
+The equivalent template configuration is:
+
+```html
+<signature placement="bottom-last" height-mm="25">
+  <p>Jane Smith<br>Customer Services</p>
+</signature>
+```
+
+Both attributes are optional: `placement` defaults to `flow`, and `height-mm` to 20. Styles and image content work in either placement. For explicit signature bounds through the typed model or JSON, see [section 16](#16-advanced-fixed-elements-and-last-page-signatures). Image/text signatures here are visible content, not cryptographic PDF signatures.
+
+## 12. HTML templates and placeholders
 
 ### Full working shape
 
@@ -518,8 +541,8 @@ import java.util.Map;
 var letter = Letter.template(templateText)
     .values(Map.of(
         "customerName", "Ana & Filhos <Lda>",
-        "addressLine1", "Rua da Energia, 24",
-        "postalAddress", "1000-001 Lisboa",
+        "addressLine1", "Morada Fictícia, 00",
+        "postalAddress", "0000-000 Localidade",
         "price", "0,1632",
         "companyName", "Example Company"))
     .asset("footer-banner", footerBytes)
@@ -527,7 +550,7 @@ var letter = Letter.template(templateText)
 byte[] pdf = new LetterPdfGenerator().generate(letter);
 ```
 
-Exactly one `letter` root and one `main` are required. Optional regions are one each of `header`, `footer`, `signature`, `logo`, and `watermark`. Region order in the source does not change their role. Body block order is preserved. A logo region contains one `img`; watermark syntax is described below.
+The supported markup format is `LETTER_HTML_V1`, exposed as `TemplateBuilder.FORMAT`. Exactly one `letter` root and one `main` are required. Optional regions are one each of `header`, `footer`, `signature`, `logo`, and `watermark`. Region order in the source does not change their role. Body block order is preserved. A logo region contains one `img`; watermark syntax is described below.
 
 ### Substitution rules
 
@@ -544,6 +567,8 @@ var letter = Letter.fromHtml(resolvedMarkup).asset("logo", logoBytes).build();
 ```
 
 This performs no replacement pass, and `.values(...)` on this builder throws an argument error. If your application uses StringSubstitutor before parsing, it is responsible for escaping replacement values in their HTML context. Prefer the integrated `.template(...).values(...)` path for ordinary scalar data.
+
+Templates support scalar placeholders, without loops or conditionals. Use the fluent API to assemble content such as tables with a variable number of rows. Pass scalar text through `.values(...)` rather than concatenating unescaped values into markup.
 
 ### Supported markup
 
@@ -565,7 +590,7 @@ Font sizes accept pt/mm/px. Margins accept mm/pt/px and unitless zero. Colors ac
 
 Root styles provide text/paragraph defaults. Region/group text properties inherit; put margins on individual paragraphs/text blocks. Background colors are supported on table elements, not ordinary text spans/paragraphs. Unsupported tags, attributes, styles and HTML error recovery fail with a location. Use letter markup without `html`, `head` or `body` wrappers, scripts, classes, stylesheets or browser positioning rules. This is a letter document format with an HTML vocabulary, not a browser renderer.
 
-### Root and header attributes
+### Root and region attributes
 
 | Element | Attribute | Meaning |
 | --- | --- | --- |
@@ -573,6 +598,8 @@ Root styles provide text/paragraph defaults. Region/group text properties inheri
 | `letter` | `margins-mm` | Uniform margins, default 20 |
 | `letter` | `header-height-mm` | Default header content height, 25 |
 | `letter` | `footer-height-mm` | Footer content height, 15 |
+| `signature` | `placement` | flow (default) or bottom-last, case-insensitive |
+| `signature` | `height-mm` | Signature content height, default 20; reserved on the last page for bottom-last |
 | `header` | `align` | left, center or right; box and default content alignment |
 | `header` | `width-mm`, `height-mm` | Optional preset box dimensions |
 | `header` | `x-mm`, `y-mm`, `width-mm`, `height-mm` together | Exact box relative to inner-page origin |
@@ -585,7 +612,7 @@ The full template format currently offers uniform root margins. Use the fluent/a
 
 `new LetterPdfGenerator()` uses the engine's standard Helvetica, Times and Courier families, including regular, bold, italic and bold italic. Helvetica is the default document font. These standard fonts require no operating-system font lookup or application registration. They are **not embedded TrueType resources bundled in this library's JAR**; PDF viewers provide standard-font display behavior.
 
-The DejaVu files under this repository's `src/test/resources/fonts` are licensed test/example fixtures. Their presence does not make DejaVu a production default. EDP examples explicitly register their `ReferenceSans` alias to those fixtures.
+The DejaVu files under this repository's `src/test/resources/fonts` are licensed test/example fixtures. Their presence does not make DejaVu a production default. The energy examples explicitly register their `ReferenceSans` alias to those fixtures.
 
 ### Register fonts for embedding or wider character coverage
 
@@ -620,46 +647,11 @@ Supply a regular face for every family and each style variant you use. Headings/
 
 Fonts must be `.ttf` with TrueType outlines. Built-in family names cannot be replaced. Family aliases are exact application identifiers, such as `CompanySans`. The application is responsible for font licensing and packaging. Standard fonts have limited character coverage; use an appropriate registered font when your target text falls outside it.
 
-## 14. Database integration and template versions
+## 14. Country and stationery variations
 
-Store the template as UTF-8 TEXT/CLOB, not one database row per paragraph. Store a stable template key, version and format alongside the text. Published versions should be immutable so a previously generated letter can be reproduced with the same template/data/assets.
+Set paper size, margins, header/address bounds, typography and assets for each letter through builder methods or template attributes.
 
-```sql
-CREATE TABLE letter_template (
-    template_key VARCHAR(100) NOT NULL,
-    template_version INTEGER NOT NULL,
-    template_format VARCHAR(40) NOT NULL,
-    content TEXT NOT NULL,
-    PRIMARY KEY (template_key, template_version)
-);
-```
-
-Use `TemplateBuilder.FORMAT`, currently `LETTER_HTML_V1`, as the format identifier. This version identifies the document vocabulary; it is separate from your business template revision. [schema.sql](examples/templates/schema.sql) is an editable application-owned example, not a migration executed by the library.
-
-An application's rendering service can follow this shape. `templateRepository`, `assetRepository`, `templateKey`, `version` and `values` belong to your application:
-
-```java
-var stored = templateRepository.load(templateKey, version);
-if (!TemplateBuilder.FORMAT.equals(stored.format())) {
-    throw new IllegalArgumentException("Unsupported stored template format");
-}
-var letter = Letter.template(stored.content())
-    .values(values)
-    .asset("company-logo", assetRepository.load(stored.logoVersion()))
-    .asset("footer-banner", assetRepository.load(stored.footerVersion()))
-    .build();
-byte[] pdf = generator.generate(letter);
-```
-
-Choose the referenced image asset names in the template, then resolve them in application code. Store bytes in a BLOB or object store as appropriate; the library does not select storage technology or fetch document-controlled URLs. Version assets too if historical reproduction matters. Per-letter replacement values are request data, separate from the reusable template. Whether you retain those values or the generated PDF is an application retention decision.
-
-Templates contain no loops/conditionals. Select a template version, assemble optional fragments, or construct programmatic tables in your application when business rules require dynamic structure. Do not concatenate unescaped recipient values into markup; use `.values(...)` for scalar data.
-
-## 15. Country and stationery variations
-
-Keep layout measurements separate from business content in application configuration: paper size, margins, header/address box, typography and assets can vary by organization, country or stationery. Do not infer a universal address-window location from a country name.
-
-Fluent application configuration can select a layout before rendering the same body:
+Configure a layout before rendering the body:
 
 ```java
 var letter = Letter.builder()
@@ -673,7 +665,7 @@ var letter = Letter.builder()
 
 Those measurements are illustrative, not a claim of conformance to a postal or national letter standard. Measure the actual envelope/window/stationery, convert paper-edge coordinates using section 5, and inspect a printed sample at 100% scale. Printer scaling and physical tolerances are outside PDF generation.
 
-With stored templates, use scalar geometry placeholders:
+With HTML templates, use scalar geometry placeholders:
 
 ```html
 <letter page="${paper}" margins-mm="${margin}">
@@ -687,7 +679,7 @@ With stored templates, use scalar geometry placeholders:
 
 Supply those keys along with recipient data in `.values(...)`. Use separate placeholders for address lines because template whitespace follows HTML rules. Format currency, dates, decimal separators and salutation in the application using the intended locale. Choose/register fonts that cover the actual language.
 
-## 16. Watermarks
+## 15. Watermarks
 
 ```java
 var draft = Letter.builder().body("Body").watermark("DRAFT").build();
@@ -716,9 +708,9 @@ For an image watermark, put one named `img` inside `watermark` and omit text. Pu
 
 Watermarks are drawn behind existing PDF content, consume no layout space, and may be covered by opaque images/table backgrounds. Text watermarks use regular undecorated fonts. Vertical centering uses cap height, so lowercase/descender-heavy text is approximate. Omitting a watermark skips the PDFBox post-processing pass entirely.
 
-## 17. Advanced fixed elements and last-page signatures
+## 16. Advanced fixed elements and last-page signatures
 
-Use immutable model records when you need more than the ordinary header/footer API: multiple address/sender boxes, different first/following-page content, explicit footer positioning, or a signature anchored at the bottom of the last page.
+Use immutable model records when you need more than the ordinary header/footer API: multiple address/sender boxes, different first/following-page content, explicit footer positioning, or custom bounds within a last-page signature zone.
 
 This complete construction uses a first-page address, following-page running header, repeated footer and bottom-last signature:
 
@@ -735,7 +727,7 @@ import com.nsdev.lettergenerator.model.text.TextRun;
 import java.util.List;
 
 var body = new Paragraph(List.of(new TextRun("Dear Ana, your request was received.", null, null)), null);
-var address = new Paragraph(List.of(new TextRun("Ana Exemplo\nRua da Energia, 24", null, null)), null);
+var address = new Paragraph(List.of(new TextRun("Cliente Exemplo\nMorada Fictícia, 00", null, null)), null);
 var running = new Paragraph(List.of(new TextRun("Example Company", null, null)), null);
 var footer = new Paragraph(List.of(new TextRun("example.com", null, null)), null);
 var signed = new Paragraph(List.of(new TextRun("Jane Smith\nCustomer Services", null, null)), null);
@@ -761,7 +753,7 @@ byte[] pdf = new LetterPdfGenerator().generate(letter);
 
 `SignaturePlacement.FLOW` has no bounds and appends after the body. `BOTTOM_LAST` requires a positive signature zone and bounds fitting it. When page layout cannot combine the final body content with the reserved signature area, generation may add a dedicated last signature page. The footer remains present there. The library checks rendered page masters and clipping; it does not silently omit a signature.
 
-## 18. JSON input
+## 17. JSON input
 
 ```java
 byte[] pdf = generator.generateJson(Files.readString(Path.of("letter.json")));
@@ -784,7 +776,7 @@ Minimal JSON:
 
 JSON maps to the immutable model, not the HTML template format. It has no placeholder substitution pass. Enums use uppercase names. Block `type` values are `paragraph`, `heading`, `list`, `image`, `table`, `pageBreak`; watermark `kind` is `text` or `image`. Image `data` is Base64. Unknown fields/discriminators, duplicate keys, malformed JSON, trailing documents, scalar coercion, numeric enum ordinals and fractional schema versions are rejected.
 
-Optional model fields may be omitted or null and use their documented defaults. Required fields produce a field-path error. See the [model constructor reference](#22-public-api-reference) and public records for full structured input. Do not treat external Java class names as JSON discriminators.
+Optional model fields may be omitted or null and use their documented defaults. Required fields produce a field-path error. See the [model constructor reference](#21-public-api-reference) and public records for full structured input. Do not treat external Java class names as JSON discriminators.
 
 ### Structured list, table and watermark examples
 
@@ -822,21 +814,21 @@ An image watermark uses Base64 bytes and an explicit millimeter box:
 
 Links permit `http`, `https` and `mailto`. Document text is escaped before internal FO construction; external XML entity loading and document-controlled filesystem/network resource access are disabled.
 
-## 19. Application integration and concurrency
+## 18. Application integration and concurrency
 
 Build a generator once and reuse it. `LetterPdfGenerator` instances are safe for concurrent generation because each render owns its engine state. A no-argument generator needs no configuration; a custom-font generator retains immutable font bytes after its builder completes.
 
 `LetterBuilder`, `TemplateBuilder`, `TableBuilder` and style builders are mutable request-building objects. Do not share one mutable builder between concurrent requests. Each document build produces an independent immutable snapshot. The library copies image data and collection contents; later changes to caller-owned data do not mutate a built letter.
 
-Generation returns a `byte[]` only after validation, layout and any watermark pass finish. You can write it to a file, attach it to an application response, upload it to your storage, or pass it to another service. For an HTTP response, the application sets `Content-Type: application/pdf` and the desired download filename. Framework/servlet integration is application-owned.
+Generation returns a `byte[]` only after validation, layout and any watermark pass finish. Pass the returned bytes to the caller. For an HTTP response, the application sets `Content-Type: application/pdf` and the desired download filename. Framework/servlet integration is application-owned.
 
-Do not rely on temporary filesystem paths in a deployed JAR for classpath resources. Package fonts as resources and register them through `registerClasspathFont`; load application-owned assets through your resource/storage layer, then pass bytes. No font scanning, database connection, font auto-download or external image fetch is required. Supported public method signatures expose no FOP, PDFBox or Jackson engine types.
+Do not rely on temporary filesystem paths in a deployed JAR for classpath resources. Package fonts as resources and register them through `registerClasspathFont`; supply image assets as bytes or through the supported path-taking methods. No font scanning, database connection, font auto-download or external image fetch is required. Supported public method signatures expose no FOP, PDFBox or Jackson engine types.
 
 For a server/JVM without a display, set `-Djava.awt.headless=true` on the application's Java command. This is especially useful when the host sets a `DISPLAY` variable even though no display is accessible. The library does not change this global JVM setting. The project's rendering tests already run in headless mode.
 
 Rendering uses memory for document state, assets and output bytes. Apply request size/concurrency budgets in the hosting application according to your workload. The library does not set a page-count limit or stream a partially generated PDF.
 
-## 20. Errors and troubleshooting
+## 19. Errors and troubleshooting
 
 ```java
 import com.nsdev.lettergenerator.exception.InvalidLetterException;
@@ -877,7 +869,7 @@ Catch errors around `build()` too when compiling templates; template validation 
 
 Avoid swallowing rendering errors and returning empty/partial PDFs. Log the field path and underlying exception in the application's normal error handling, with its own handling of recipient-sensitive data.
 
-## 21. Run the examples and inspect output
+## 20. Run the examples and inspect output
 
 From the repository, run all checks and generate example PDFs:
 
@@ -889,21 +881,31 @@ Focused rendering examples:
 
 ```sh
 ./mvnw -Dtest=HeaderPlacementTest test
-./mvnw -Dtest=EdpTemplateTest test
-./mvnw -Dtest=EdpReferenceLetterTest test
+./mvnw -Dtest=EnergyTemplateTest test
+./mvnw -Dtest=EnergyReferenceLetterTest test
 ```
 
 | Test/example | Output under `target/examples/` |
 | --- | --- |
 | `HeaderPlacementTest` | `header-exact-position.pdf` and PNG |
-| `EdpTemplateTest` | `edp-template-letter.pdf`, PNG, `template-assets/logo.png` and `footer.png` |
-| `EdpReferenceLetterTest` | `edp-reference-letter.pdf`, `edp-fluent-letter.pdf` and PNGs |
+| `EnergyTemplateTest` | `energy-template-letter.pdf`, PNG, `template-assets/logo.png` and `footer.png` |
+| `EnergyReferenceLetterTest` | Typed `energy-reference-letter.pdf`, fluent `energy-fluent-letter.pdf`, JSON `energy-json-letter.pdf`, and PNGs |
 | `TemplateMarkupTest` | `template-features.pdf` and PNG; repeated styled/image footer across two pages |
 | `HeaderPlacementExamples` | `header-left.pdf`, `header-center.pdf`, `header-right.pdf`, `header-window.pdf` |
 
-The reusable fixture sources are `src/test/java/com/nsdev/lettergenerator/fixtures/EdpReferenceLetter.java` and `FluentEdpLetter.java`. Edit these for the low-level/fluent EDP examples, or edit the HTML/values files for the stored-template example. `TableRenderingTest` separately checks styling, immutable input ownership and repeating table headers.
+Standalone consumer applications live in `examples/`. Automated tests and Java fixtures live in `src/test/java/`; reusable HTML, JSON, values and images live together in `src/test/resources/letters/energy/`. Test inputs are read from the classpath, so loading them does not depend on the working directory. Maven excludes these fixtures and test fonts from the published library JAR.
 
-The EDP fixtures use fictional recipient/contract data and an approximate programmatically drawn logo; they recreate content/layout rather than embedding the reference screenshot. Editable template/data are [edp-price-update.html](examples/templates/edp-price-update.html) and [edp-values.json](examples/templates/edp-values.json).
+The reusable fixture sources are `src/test/java/com/nsdev/lettergenerator/fixtures/EnergyReferenceLetter.java` and `FluentEnergyLetter.java`. Edit these for the low-level/fluent energy examples, or edit the HTML/values files for the HTML-template example. `TableRenderingTest` separately checks styling, immutable input ownership and repeating table headers.
+
+All four API tests generate the same anonymized reference scenario: typed Java, fluent Java, JSON and HTML. Each anchors the signature above the footer on the last page with `BOTTOM_LAST` and a 25 mm signature zone; the tests check its rendered position. Names, addresses, contract/delivery identifiers, company branding, websites and telephone details are synthetic; the logo and image footer use generic “Energia Exemplo” artwork. No original signature, logo or screenshot is embedded.
+
+Run all four together:
+
+```sh
+./mvnw -Dtest=EnergyReferenceLetterTest,EnergyTemplateTest test
+```
+
+Every PDF must contain the expected selectable content in order, the synthetic logo/image footer, and one A4 page. Editable inputs are [energy-letter.json](src/test/resources/letters/energy/energy-letter.json), [energy-price-update.html](src/test/resources/letters/energy/energy-price-update.html) and [energy-values.json](src/test/resources/letters/energy/energy-values.json). Shared synthetic images are [energy-logo.png](src/test/resources/letters/energy/energy-logo.png) and [energy-footer.png](src/test/resources/letters/energy/energy-footer.png). The JSON test reads the native JSON fixture directly; it does not serialize a Java document to manufacture its input.
 
 To run standalone applications against the packaged JAR and only production dependencies, use these commands from the repository on Linux/macOS:
 
@@ -916,14 +918,14 @@ javac --release 17 -Xlint:all -Werror \
   examples/GenerateTemplateLetter.java examples/HeaderPlacementExamples.java
 java -cp "target/example-classes:target/letter-generator-1.0.0-SNAPSHOT.jar:$(cat target/classpath.txt)" GenerateLetter
 java -cp "target/example-classes:target/letter-generator-1.0.0-SNAPSHOT.jar:$(cat target/classpath.txt)" HeaderPlacementExamples
-java -cp "target/example-classes:target/letter-generator-1.0.0-SNAPSHOT.jar:$(cat target/classpath.txt)" GenerateTemplateLetter
+java -cp "target/example-classes:src/test/resources:target/letter-generator-1.0.0-SNAPSHOT.jar:$(cat target/classpath.txt)" GenerateTemplateLetter
 ```
 
-`GenerateTemplateLetter` uses the test-produced assets, editable EDP template and test-font paths by default; run the EDP test first or supply its template/data/asset paths. Its five optional arguments are template HTML, values JSON, logo PNG, footer PNG and output PDF. `GenerateLetter` optionally accepts JSON path and output path. `HeaderPlacementExamples` optionally accepts an output directory. On Windows adapt shell syntax and use `;` as the Java classpath separator.
+`GenerateTemplateLetter` loads the reference template, values, synthetic images and fonts from the classpath by default; the command above adds `src/test/resources` to supply them. Its five optional filesystem arguments are template HTML, values JSON, logo PNG, footer PNG and output PDF. Supplied file paths override the corresponding default resources; fonts still come from the classpath. `GenerateLetter` optionally accepts JSON path and output path. `HeaderPlacementExamples` optionally accepts an output directory. On Windows adapt shell syntax and use `;` as the Java classpath separator.
 
 Open a generated PDF in your PDF viewer, for example `xdg-open target/examples/header-right.pdf` on a Linux desktop. Compare printed address-window placement at actual size. Do not judge exact physical coordinates from a viewer's zoomed screenshot.
 
-## 22. Public API reference
+## 21. Public API reference
 
 Public packages start with `com.nsdev.lettergenerator`. The `internal` subtree is implementation detail; applications should not import it.
 
@@ -967,6 +969,8 @@ Generator builder methods: `registerFont(String, FontVariant, Path)`, `registerC
 | `logo(Path/byte[]/ImageBlock)` | Set a separate top-left logo |
 | `signature(SignatureContent...)` | Replace signature with stacked text/image parts |
 | `signatureHtml(String)`, `signatureBlocks(Block...)` | Replace signature with formatted/typed content |
+| `signaturePlacement(SignaturePlacement)` | FLOW (default) or BOTTOM_LAST above the final footer |
+| `signatureHeightMm(double)` | Available signature height; default 20 mm; reserved for BOTTOM_LAST |
 | `watermark(String/Watermark)` | Set text-default or explicit watermark |
 | `asset(String, Path/byte[])` | Snapshot a named image asset |
 | `fixedElement(FixedElement)` | Append advanced fixed content to configured zones |
@@ -1010,7 +1014,7 @@ Configuration calls replace their option; body and advanced fixed-element calls 
 
 Use schema version `1`. Null optional style properties inherit. PageSpec null fields select defaults. Sections preserve input order; their names are labels without layout meaning. Every box requires finite nonnegative x/y and positive dimensions. Required content/fields are validated during generation; constructing a record is not a guarantee that it is renderable. Image array data has defensive copying and content-based equality.
 
-## 23. Supported scope and limits
+## 22. Supported scope and limits
 
 The supported scope is styled PDF letters with native text, flow pagination, PNG/JPEG content, tables, fixed letter regions, visible signatures and optional text/image watermarks. The library checks geometry, resource references, font variants/glyphs, and rendering overflow, including painted glyph/underline bounds that can exceed logical line boxes. It does not shrink text silently; oversized images and nonbreaking text may require smaller dimensions or different content. It returns no partial PDF on failure.
 
@@ -1018,7 +1022,7 @@ HTML input supports the finite vocabulary above. General CSS/browser layout, arb
 
 For an issue report, include a minimal template/model, scalar values, required font/image assets with permission to share, the Java/library version, and the complete exception including its cause. Use fictional recipient data where possible. `./mvnw clean verify` is the project's full acceptance command; examples and previews are generated under `target`, so clean builds remove and recreate them.
 
-## 24. Development and code quality
+## 23. Development and code quality
 
 ```sh
 ./mvnw spotless:apply   # Apply the checked-in Java formatting convention
@@ -1041,5 +1045,7 @@ The package layout separates responsibilities:
 | `internal.resource`, `internal.xml` | In-memory resource allowlist and secure XML handling |
 
 The test suite separates shared fixtures from integration tests. Image records provide byte-content equality/hash codes in addition to defensive copying. Pagination recovery uses typed diagnostics and retries only recoverable body overflow or a missing last-page master. Font, fixed-box, and parsing failures do not trigger a broad retry.
+
+Template compilation delegates each top-level region to a dedicated `TemplateTagHandler`. An immutable registry defines the supported tags and their execution order; handlers receive a fresh compilation context. To extend the library with another top-level tag, implement its handler and register it once. Contributor instructions explain [how to add a template region](CONTRIBUTING.md#adding-a-template-region).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor conventions. User-facing instructions and API examples are maintained in this README. Internal plans and implementation notes are kept locally under the ignored `docs/` directory.

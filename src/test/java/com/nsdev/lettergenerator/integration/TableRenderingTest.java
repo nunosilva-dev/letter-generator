@@ -2,7 +2,9 @@ package com.nsdev.lettergenerator.integration;
 
 import static com.nsdev.lettergenerator.fixtures.LetterFixtures.document;
 import static com.nsdev.lettergenerator.fixtures.PdfTestSupport.text;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.nsdev.lettergenerator.LetterPdfGenerator;
 import com.nsdev.lettergenerator.exception.InvalidLetterException;

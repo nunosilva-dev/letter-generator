@@ -1,8 +1,15 @@
 package com.nsdev.lettergenerator.integration;
 
-import static com.nsdev.lettergenerator.fixtures.LetterFixtures.*;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.document;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.layout;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.paragraph;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.png;
 import static com.nsdev.lettergenerator.fixtures.PdfTestSupport.text;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.nsdev.lettergenerator.LetterPdfGenerator;
 import com.nsdev.lettergenerator.exception.InvalidLetterException;

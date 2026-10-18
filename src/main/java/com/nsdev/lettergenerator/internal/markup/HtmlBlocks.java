@@ -1,6 +1,10 @@
 package com.nsdev.lettergenerator.internal.markup;
 
-import com.nsdev.lettergenerator.model.block.*;
+import com.nsdev.lettergenerator.model.block.Block;
+import com.nsdev.lettergenerator.model.block.Heading;
+import com.nsdev.lettergenerator.model.block.ListBlock;
+import com.nsdev.lettergenerator.model.block.PageBreakBlock;
+import com.nsdev.lettergenerator.model.block.Paragraph;
 import com.nsdev.lettergenerator.model.style.Style;
 import com.nsdev.lettergenerator.model.text.TextRun;
 import java.util.ArrayList;

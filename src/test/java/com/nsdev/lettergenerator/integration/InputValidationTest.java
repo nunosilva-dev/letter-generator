@@ -1,7 +1,10 @@
 package com.nsdev.lettergenerator.integration;
 
 import static com.nsdev.lettergenerator.fixtures.LetterFixtures.onePageJson;
-import static org.junit.jupiter.api.Assertions.*;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.paragraph;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;

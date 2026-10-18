@@ -1,7 +1,12 @@
 package com.nsdev.lettergenerator.integration;
 
-import static com.nsdev.lettergenerator.fixtures.LetterFixtures.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.document;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.onePageJson;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.paragraph;
+import static com.nsdev.lettergenerator.fixtures.LetterFixtures.png;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -13,7 +18,13 @@ import com.nsdev.lettergenerator.model.Section;
 import com.nsdev.lettergenerator.model.block.Block;
 import com.nsdev.lettergenerator.model.block.ImageBlock;
 import com.nsdev.lettergenerator.model.block.Paragraph;
-import com.nsdev.lettergenerator.model.layout.*;
+import com.nsdev.lettergenerator.model.layout.Bounds;
+import com.nsdev.lettergenerator.model.layout.FixedElement;
+import com.nsdev.lettergenerator.model.layout.PageSelector;
+import com.nsdev.lettergenerator.model.layout.PageSpec;
+import com.nsdev.lettergenerator.model.layout.Signature;
+import com.nsdev.lettergenerator.model.layout.SignaturePlacement;
+import com.nsdev.lettergenerator.model.layout.Zone;
 import com.nsdev.lettergenerator.model.style.Style;
 import com.nsdev.lettergenerator.model.text.TextRun;
 import java.util.ArrayList;

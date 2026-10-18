@@ -2,7 +2,12 @@ package com.nsdev.lettergenerator.internal.render.fo;
 
 import com.nsdev.lettergenerator.internal.xml.XmlBuilder;
 import com.nsdev.lettergenerator.model.LetterDocument;
-import com.nsdev.lettergenerator.model.layout.*;
+import com.nsdev.lettergenerator.model.layout.FixedElement;
+import com.nsdev.lettergenerator.model.layout.Margins;
+import com.nsdev.lettergenerator.model.layout.PageSpec;
+import com.nsdev.lettergenerator.model.layout.Signature;
+import com.nsdev.lettergenerator.model.layout.SignaturePlacement;
+import com.nsdev.lettergenerator.model.layout.Zone;
 
 /** Writes page masters and fixed regions independently of body block serialization. */
 final class FoPageLayoutWriter {

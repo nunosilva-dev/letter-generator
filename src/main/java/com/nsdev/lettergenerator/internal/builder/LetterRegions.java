@@ -3,7 +3,13 @@ package com.nsdev.lettergenerator.internal.builder;
 import com.nsdev.lettergenerator.internal.layout.PageGeometry;
 import com.nsdev.lettergenerator.model.block.Block;
 import com.nsdev.lettergenerator.model.block.ImageBlock;
-import com.nsdev.lettergenerator.model.layout.*;
+import com.nsdev.lettergenerator.model.layout.Bounds;
+import com.nsdev.lettergenerator.model.layout.FixedElement;
+import com.nsdev.lettergenerator.model.layout.Margins;
+import com.nsdev.lettergenerator.model.layout.PageSelector;
+import com.nsdev.lettergenerator.model.layout.PageSize;
+import com.nsdev.lettergenerator.model.layout.PageSpec;
+import com.nsdev.lettergenerator.model.layout.Zone;
 import java.util.ArrayList;
 import java.util.List;
 
