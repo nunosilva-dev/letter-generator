@@ -10,6 +10,10 @@ final class FooterTagHandler implements TemplateTagHandler {
         return "footer";
     }
 
+    /**
+     * Replaces repeated footer blocks, inheriting root/region style and using the configured footer
+     * height as the image fitting base. Page breaks are rejected.
+     */
     @Override
     public void handle(Element element, TemplateContext context) {
         context.builder()

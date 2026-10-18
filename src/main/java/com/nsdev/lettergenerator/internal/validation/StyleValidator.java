@@ -4,14 +4,35 @@ import com.nsdev.lettergenerator.internal.font.FontRegistry;
 import com.nsdev.lettergenerator.model.style.Style;
 import java.util.regex.Pattern;
 
+/**
+ * Validates only explicitly set style properties; null properties retain inheritance. Variant
+ * availability is checked after block/run styles have been resolved.
+ */
 final class StyleValidator {
+    /** Six-digit hexadecimal RGB syntax accepted by the model, with either letter case. */
     private static final Pattern RGB_COLOR = Pattern.compile("#[0-9a-fA-F]{6}");
+
+    /** Generator font snapshot for checking explicitly selected families. */
     private final FontRegistry fonts;
 
+    /**
+     * Binds style-family checks to the generator font registry.
+     *
+     * @param fonts font families available to the generator
+     */
     StyleValidator(FontRegistry fonts) {
         this.fonts = fonts;
     }
 
+    /**
+     * Accepts null/inherited styles; checks registered families, finite positive font size and line
+     * height, nonnegative spacing and normalized RGB colors.
+     *
+     * @param style nullable override set; null means all properties inherit
+     * @param path model-field path used to locate any validation error
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if a supplied family,
+     *     size, line height, spacing, or color is invalid
+     */
     void validate(Style style, String path) {
         if (style == null) {
             return;
@@ -36,6 +57,15 @@ final class StyleValidator {
         }
     }
 
+    /**
+     * Requires a non-null six-digit RGB value in #RRGGBB form; markup color names have already been
+     * normalized by the HTML style reader.
+     *
+     * @param value required model RGB value, including the leading hash
+     * @param path model-field path used to locate any validation error
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if the value is null or
+     *     does not match six-digit hexadecimal RGB syntax
+     */
     static void color(String value, String path) {
         ValidationChecks.require(
                 value != null && RGB_COLOR.matcher(value).matches(), path, "expected #RRGGBB");

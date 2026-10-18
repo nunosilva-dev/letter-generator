@@ -10,8 +10,16 @@ import org.jsoup.nodes.TextNode;
 
 /** Map-only substitution on parsed values: replacements can never create markup nodes. */
 final class TemplateBindings {
+    /** Per-traversal map lookup with recursive expansion and defaults disabled. */
     private final StringSubstitutor substitutor;
 
+    /**
+     * Configures a map-only lookup: no environment/system/URL lookups, nested variable names,
+     * recursive value expansion or default-value delimiter. Missing variables are errors. The
+     * compiler uses this instance only during one traversal.
+     *
+     * @param values map-only replacement strings
+     */
     TemplateBindings(Map<String, String> values) {
         substitutor =
                 new StringSubstitutor(values)
@@ -21,6 +29,13 @@ final class TemplateBindings {
                         .setValueDelimiterMatcher(null);
     }
 
+    /**
+     * Mutates existing text and attribute values recursively after parsing, so replacements remain
+     * literal data and cannot add elements or attributes. Tag and attribute names are never
+     * substituted; CSS receives declaration-level checks before setting its style value.
+     *
+     * @param node parsed node to traverse
+     */
     void apply(Node node) {
         if (node instanceof TextNode text) {
             text.text(replace(text.getWholeText(), MarkupSupport.path(node)));
@@ -42,6 +57,15 @@ final class TemplateBindings {
         }
     }
 
+    /**
+     * Keeps CSS property names literal and substitutes each value independently. A resulting
+     * semicolon is forbidden so a replacement cannot inject another declaration; full CSS
+     * vocabulary/value validation is performed later by HtmlStyles.
+     *
+     * @param input existing text or attribute value
+     * @param element parsed element being read and used for diagnostics
+     * @return substituted CSS with literal property names and preserved declaration boundaries
+     */
     private String style(String input, Element element) {
         var result = new StringBuilder();
         for (String declaration : input.split(";")) {
@@ -66,6 +90,13 @@ final class TemplateBindings {
         return result.toString();
     }
 
+    /**
+     * Wraps substitution errors with the exact text/attribute/CSS-value location and cause.
+     *
+     * @param input existing text or attribute value
+     * @param path complete diagnostic location for substitution errors
+     * @return literal map substitution result
+     */
     private String replace(String input, String path) {
         try {
             return substitutor.replace(input);

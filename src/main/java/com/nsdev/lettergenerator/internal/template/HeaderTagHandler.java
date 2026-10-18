@@ -15,6 +15,11 @@ final class HeaderTagHandler implements TemplateTagHandler {
         return "header";
     }
 
+    /**
+     * Applies alignment and optional dimensions/bounds before storing header markup for deferred
+     * builder compilation. Any x/y placement requires all four millimeter coordinates/dimensions;
+     * root text style is inherited, and paragraph margins belong to child blocks.
+     */
     @Override
     public void handle(Element element, TemplateContext context) {
         LetterBuilder builder = context.builder();
@@ -66,6 +71,13 @@ final class HeaderTagHandler implements TemplateTagHandler {
         builder.headerStyle(style).headerHtml(element.html());
     }
 
+    /**
+     * Parses a required header coordinate/dimension as a finite millimeter value.
+     *
+     * @param element parsed element being read and used for diagnostics
+     * @param attribute attribute name to read
+     * @return finite numeric value in millimeters
+     */
     private static double number(Element element, String attribute) {
         return HtmlStyles.number(element.attr(attribute), element);
     }

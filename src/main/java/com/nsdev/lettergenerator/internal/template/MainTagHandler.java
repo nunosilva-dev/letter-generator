@@ -14,6 +14,10 @@ final class MainTagHandler implements TemplateTagHandler {
         return true;
     }
 
+    /**
+     * Appends body blocks in source order with the inner-page image fitting dimensions. This is the
+     * only region permitting page breaks.
+     */
     @Override
     public void handle(Element element, TemplateContext context) {
         TemplateBlocks.read(element, context, context.page().heightMm(), true)

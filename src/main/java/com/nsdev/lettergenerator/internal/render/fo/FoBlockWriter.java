@@ -19,26 +19,66 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/** Emits letter blocks and assigns private in-memory resource identifiers to images. */
+/**
+ * Serializes the sealed block vocabulary into native FO text, lists, images and tables.
+ *
+ * <p>Style resolution follows renderer defaults, document, section, block and run overrides. Images
+ * are assigned private memory URIs and collected for the engine allowlist. This writer is mutable
+ * and confined to one composition; it does not read files or validate application models.
+ */
 final class FoBlockWriter {
+    /** Minimum physical indentation reserved for list labels. */
     private static final double MINIMUM_LIST_INDENT_MM = 8.0;
+
+    /** Heuristic label width per character and font point, expressed in millimeters. */
     private static final double LABEL_WIDTH_MM_PER_FONT_POINT = 0.25;
+
+    /** Gap between a list label and its text, in millimeters. */
     private static final double LABEL_SEPARATION_MM = 2.0;
+
+    /** Breakable keep priority that keeps a list item together when it fits. */
     private static final int SOFT_KEEP_PRIORITY = 1;
+
+    /** Native Unicode bullet used for unordered list labels. */
     private static final String BULLET = "\u2022";
+
+    /** XML stream owned by the enclosing composition. */
     private final XmlBuilder xml;
+
+    /** Optional document overrides applied before section/block/run styles. */
     private final Style documentStyle;
+
+    /** Images collected under generated memory URIs for the engine resource allowlist. */
     private final Map<URI, byte[]> images = new LinkedHashMap<>();
 
+    /**
+     * Shares the current XML stream and optional document-level style defaults.
+     *
+     * @param xml current composition stream
+     * @param documentStyle optional document-level style overrides
+     */
     FoBlockWriter(XmlBuilder xml, Style documentStyle) {
         this.xml = xml;
         this.documentStyle = documentStyle;
     }
 
+    /**
+     * Returns a read-only snapshot of image URI registrations accumulated during block
+     * serialization; image data follows the model's ownership rules.
+     *
+     * @return immutable URI lookup for images emitted so far
+     */
     Map<URI, byte[]> images() {
         return Map.copyOf(images);
     }
 
+    /**
+     * Emits blocks in order with the supplied section style. Explicit page breaks become real
+     * transition anchors instead of removable empty blocks.
+     *
+     * @param blocks ordered validated model blocks
+     * @param sectionStyle optional section defaults layered after document defaults
+     */
     void blocks(List<Block> blocks, Style sectionStyle) {
         for (Block block : blocks) {
             if (block instanceof PageBreakBlock) {
@@ -65,6 +105,14 @@ final class FoBlockWriter {
         }
     }
 
+    /**
+     * Writes a fixed box using millimeter bounds and a vertical region offset, with
+     * error-on-overflow enabled; its contents do not consume body flow height.
+     *
+     * @param bounds fixed-box position and size in millimeters relative to its region
+     * @param verticalOffset extra top offset in millimeters, used to place footers below signatures
+     * @param content validated blocks to paint inside the fixed rectangle
+     */
     void positionedBox(Bounds bounds, double verticalOffset, List<Block> content) {
         xml.start("block-container")
                 .attribute("absolute-position", "absolute")
@@ -77,6 +125,14 @@ final class FoBlockWriter {
         xml.end();
     }
 
+    /**
+     * Emits native selectable text while preserving explicit newlines and spaces; heading blocks
+     * request keeping with the next body block.
+     *
+     * @param runs ordered native-text runs
+     * @param style resolved paragraph appearance
+     * @param heading whether to prefer keeping this block with the next block
+     */
     private void text(List<TextRun> runs, ResolvedStyle style, boolean heading) {
         xml.start("block");
         FoStyleWriter.block(xml, paragraphStyle(runs, style));
@@ -92,6 +148,14 @@ final class FoBlockWriter {
         xml.end();
     }
 
+    /**
+     * Raises the paragraph line box to the largest resolved inline-run height because FOP does not
+     * apply line-height on inline elements.
+     *
+     * @param runs inline runs whose font sizes/line heights may override the paragraph
+     * @param inherited resolved paragraph style
+     * @return paragraph style with enough line height for its largest run
+     */
     private static ResolvedStyle paragraphStyle(List<TextRun> runs, ResolvedStyle inherited) {
         // FOP ignores fo:inline line-height. Allocate the largest resolved run line box.
         double linePoints = 0;
@@ -102,6 +166,13 @@ final class FoBlockWriter {
         return inherited.withLineHeight(linePoints / inherited.fontSizePt());
     }
 
+    /**
+     * Writes one escaped inline run and optional PDF link, applying run overrides after the
+     * inherited paragraph style.
+     *
+     * @param run text, optional link and optional inline overrides
+     * @param inherited resolved enclosing paragraph appearance
+     */
     private void run(TextRun run, ResolvedStyle inherited) {
         if (run.href() != null) {
             xml.start("basic-link").attribute("external-destination", linkDestination(run.href()));
@@ -114,6 +185,13 @@ final class FoBlockWriter {
         }
     }
 
+    /**
+     * Encodes a validated URI for the FO url(...) expression, escaping delimiters as well as
+     * non-ASCII URI characters.
+     *
+     * @param href validated absolute HTTP, HTTPS or mailto URI
+     * @return safely delimited FO external-destination value
+     */
     private static String linkDestination(String href) {
         String escapedUri =
                 URI.create(href)
@@ -124,6 +202,13 @@ final class FoBlockWriter {
         return "url('" + escapedUri + "')";
     }
 
+    /**
+     * Allocates label width from item-count digits/font size and serializes each item with a soft
+     * keep-together request.
+     *
+     * @param list validated ordered or unordered items
+     * @param style resolved list appearance
+     */
     private void list(ListBlock list, ResolvedStyle style) {
         int labelCharacters = Integer.toString(list.items().size()).length() + 1;
         double indent =
@@ -147,6 +232,13 @@ final class FoBlockWriter {
         xml.end();
     }
 
+    /**
+     * Registers supplied image bytes and emits a uniformly fitted graphic with zero-height text
+     * metrics so line leading does not add space.
+     *
+     * @param image validated bytes and fitted millimeter dimensions
+     * @param style resolved image-block spacing/alignment
+     */
     private void image(ImageBlock image, ResolvedStyle style) {
         URI resource = ResourceUris.image(images.size());
         images.put(resource, image.data());

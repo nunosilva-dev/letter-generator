@@ -9,15 +9,32 @@ import org.jsoup.nodes.Element;
 
 /** Maps a finite inline-CSS vocabulary to the existing nullable style properties. */
 public final class HtmlStyles {
+    /** Index of the blue component in a three-digit hexadecimal color. */
     private static final int BLUE_DIGIT_INDEX = 3;
+
+    /** Typographic point density used for CSS conversion. */
     private static final double POINTS_PER_INCH = 72.0;
+
+    /** CSS pixel density used for image dimensions and px lengths. */
     private static final double PIXELS_PER_INCH = 96.0;
+
+    /** Millimeters per inch used for CSS unit conversion. */
     private static final double MM_PER_INCH = 25.4;
+
+    /** Divisor converting percentage values to fractions. */
     private static final double PERCENT_SCALE = 100.0;
+
+    /** Supported decimal lengths and optional mm, pt, px or percentage units. */
     private static final Pattern LENGTH =
             Pattern.compile("([+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+))(mm|pt|px|%)?");
+
+    /** Accepted six-digit hexadecimal color syntax. */
     private static final Pattern HEX = Pattern.compile("#[0-9a-fA-F]{6}");
+
+    /** Accepted three-digit shorthand color syntax. */
     private static final Pattern SHORT_HEX = Pattern.compile("#[0-9a-fA-F]{3}");
+
+    /** Finite named-color vocabulary mapped to six-digit hexadecimal values. */
     private static final Map<String, String> COLORS =
             Map.ofEntries(
                     Map.entry("black", "#000000"),
@@ -29,13 +46,34 @@ public final class HtmlStyles {
                     Map.entry("blue", "#0000FF"),
                     Map.entry("navy", "#000080"),
                     Map.entry("teal", "#008080"));
+
+    /** Semantic heading font sizes in points. */
     private static final Map<String, Double> HEADING_SIZES =
             Map.of("h1", 18d, "h2", 16d, "h3", 14d, "h4", 12d, "h5", 11d, "h6", 10d);
 
+    /** Prevents construction of this static helper. */
     private HtmlStyles() {}
 
+    /**
+     * Parsed CSS before the caller applies element-specific restrictions and dimension bases.
+     *
+     * @param style nullable-property text/block overrides, never null when returned by read
+     * @param background normalized background color, or null when absent
+     * @param width unconverted CSS dimension, or null when absent
+     * @param height unconverted CSS dimension, or null when absent
+     */
     public record Appearance(Style style, String background, String width, String height) {}
 
+    /**
+     * Reads supported inline declarations only; later declarations override earlier ones.
+     * Background and dimensions are separated so text, image and table callers can restrict them.
+     * No selector stylesheet or browser-computed style participates.
+     *
+     * @param element non-null element containing an optional style attribute
+     * @return parsed text overrides plus optional background and raw dimensions
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if a declaration,
+     *     property, color, font or parsed scalar value is unsupported
+     */
     public static Appearance read(Element element) {
         var style = Style.builder();
         String background = null;
@@ -81,6 +119,16 @@ public final class HtmlStyles {
         return new Appearance(style.build(), background, width, height);
     }
 
+    /**
+     * Resolves markup text as inherited properties, then semantic tag defaults, then local CSS.
+     * Parent block spacing is dropped; local margin-top/bottom become this block's spacing.
+     *
+     * @param parent parent properties, or null for no inherited overrides
+     * @param element non-null text element
+     * @return nullable style overrides after cascading
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException for invalid CSS or
+     *     dimensions/backgrounds, which are not supported on text elements
+     */
     public static Style text(Style parent, Element element) {
         var appearance = read(element);
         MarkupSupport.require(
@@ -94,6 +142,12 @@ public final class HtmlStyles {
         return inherited(parent).overlay(semantic(element)).overlay(appearance.style());
     }
 
+    /**
+     * Supplies bold/italic/underline tag semantics and fixed heading sizes before local CSS.
+     *
+     * @param element non-null element whose normalized name selects the defaults
+     * @return semantic overrides, or an empty style for an unstyled tag
+     */
     public static Style semantic(Element element) {
         return switch (element.normalName()) {
             case "strong", "b", "th" -> Style.builder().bold().build();
@@ -108,6 +162,12 @@ public final class HtmlStyles {
         };
     }
 
+    /**
+     * Copies inheritable text properties while clearing before/after paragraph spacing.
+     *
+     * @param parent nullable parent style
+     * @return empty style for null, otherwise a copy without block margins
+     */
     public static Style inherited(Style parent) {
         if (parent == null) {
             return Style.plain();
@@ -125,6 +185,13 @@ public final class HtmlStyles {
                 null);
     }
 
+    /**
+     * Converts CSS font size to points, preserving explicit pt values and rejecting percentages.
+     *
+     * @param value local value to interpret
+     * @param element parsed element being read and used for diagnostics
+     * @return font size in points
+     */
     private static double points(String value, Element element) {
         double millimeters = lengthMm(value, 0, false, element);
         String normalized = value.trim().toLowerCase(Locale.ROOT);
@@ -133,6 +200,19 @@ public final class HtmlStyles {
                 : millimeters * POINTS_PER_INCH / MM_PER_INCH;
     }
 
+    /**
+     * Converts nonnegative mm, pt, px or percentage lengths into millimeters. Pixels use 96 dpi and
+     * points use 72 per inch. A unitless zero is always accepted; other unitless values require
+     * image-style pixel interpretation. Percentages require a positive reference base.
+     *
+     * @param value non-null length text
+     * @param percentageBase percentage reference in millimeters; zero disables percentages
+     * @param pixelsWhenUnitless whether nonzero unitless values mean pixels
+     * @param element node used to locate errors
+     * @return converted nonnegative length in millimeters
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if syntax, numeric range,
+     *     unit or percentage context is unsupported
+     */
     public static double lengthMm(
             String value, double percentageBase, boolean pixelsWhenUnitless, Element element) {
         var matcher = LENGTH.matcher(value.trim().toLowerCase(Locale.ROOT));
@@ -160,6 +240,14 @@ public final class HtmlStyles {
         };
     }
 
+    /**
+     * Parses a finite Java double without imposing a sign constraint.
+     *
+     * @param value non-null numeric text
+     * @param element node used to locate errors
+     * @return finite numeric value
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if unparsable/non-finite
+     */
     public static double number(String value, Element element) {
         try {
             double result = Double.parseDouble(value);
@@ -170,6 +258,14 @@ public final class HtmlStyles {
         }
     }
 
+    /**
+     * Accepts the finite named-color vocabulary or three/six hexadecimal digits after #.
+     *
+     * @param value non-null color text; supported names are case-insensitive
+     * @param element node used to locate errors
+     * @return six-digit hexadecimal color, expanding shorthand and resolving names
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if unsupported
+     */
     public static String color(String value, Element element) {
         String normalized = COLORS.getOrDefault(value.toLowerCase(Locale.ROOT), value);
         if (SHORT_HEX.matcher(normalized).matches()) {
@@ -189,6 +285,17 @@ public final class HtmlStyles {
         return normalized;
     }
 
+    /**
+     * Maps only the supported literal on/off spellings; arbitrary CSS keywords are rejected.
+     *
+     * @param value local value to interpret
+     * @param yes accepted true spelling
+     * @param yesAlias alternate true spelling
+     * @param no accepted false spelling
+     * @param noAlias alternate false spelling
+     * @param element parsed element being read and used for diagnostics
+     * @return true for either true spelling, false for either false spelling
+     */
     private static boolean choice(
             String value, String yes, String yesAlias, String no, String noAlias, Element element) {
         MarkupSupport.require(
@@ -201,6 +308,14 @@ public final class HtmlStyles {
         return value.equals(yes) || value.equals(yesAlias);
     }
 
+    /**
+     * Removes optional outer quotes and requires one nonblank family, with no fallback list.
+     * Registration is checked later against the font registry.
+     *
+     * @param value local value to interpret
+     * @param element parsed element being read and used for diagnostics
+     * @return single unquoted family identifier
+     */
     private static String family(String value, Element element) {
         String family = value.replaceAll("^['\"]|['\"]$", "");
         MarkupSupport.require(

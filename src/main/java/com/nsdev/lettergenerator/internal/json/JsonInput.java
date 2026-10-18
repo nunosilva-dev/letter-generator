@@ -15,11 +15,24 @@ import com.nsdev.lettergenerator.model.LetterDocument;
 
 /** Strict JSON boundary; the configured mapper is never exposed or mutated after initialization. */
 public final class JsonInput {
+    /** Fallback diagnostic location for failures without a mapping reference chain. */
     private static final String ROOT_PATH = "document";
+
+    /** Single privately configured mapper, never mutated after publication. */
     private static final ObjectMapper MAPPER = createMapper();
 
+    /** Prevents construction of this static helper. */
     private JsonInput() {}
 
+    /**
+     * Deserializes the shared model before the generator's semantic validation pass. JSON null can
+     * produce a null document, which that later pass rejects. Unknown fields, duplicate keys,
+     * trailing tokens, numeric enums, null primitives and configured scalar coercions fail here.
+     *
+     * @param json JSON text; Java null is rejected
+     * @return deserialized document, or null for the JSON null literal
+     * @throws InvalidLetterException if input is absent or cannot be mapped under the strict rules
+     */
     public static LetterDocument read(String json) {
         if (json == null) {
             throw new InvalidLetterException(ROOT_PATH, "JSON is required");
@@ -32,6 +45,13 @@ public final class JsonInput {
         }
     }
 
+    /**
+     * Constructs the only mapper before publication. String length is raised to Integer.MAX_VALUE
+     * for embedded image data; other stream constraints retain Jackson defaults. Explicit flags
+     * prevent unknown fields, duplicate keys, extra roots and lossy/coercive scalar conversion.
+     *
+     * @return fully configured mapper published once to readers
+     */
     private static ObjectMapper createMapper() {
         JsonFactory factory =
                 JsonFactory.builder()
@@ -51,6 +71,14 @@ public final class JsonInput {
                 .build();
     }
 
+    /**
+     * Converts Jackson's reference chain to dotted fields and bracketed indices. Syntax errors
+     * without a mapping chain use document; unknown-property errors append the property when
+     * Jackson has not already included its name at the end of the assembled path.
+     *
+     * @param exception original parsing/mapping failure
+     * @return closest field/index path, or document for unlocated syntax errors
+     */
     private static String fieldPath(JsonProcessingException exception) {
         if (!(exception instanceof JsonMappingException mapping)) {
             return ROOT_PATH;
@@ -70,6 +98,12 @@ public final class JsonInput {
         return path.isEmpty() ? ROOT_PATH : path.toString();
     }
 
+    /**
+     * Adds a field separator only after an existing path, preserving adjacent array indices.
+     *
+     * @param path diagnostic path under construction
+     * @param field field name to append
+     */
     private static void appendField(StringBuilder path, String field) {
         if (!path.isEmpty()) {
             path.append('.');

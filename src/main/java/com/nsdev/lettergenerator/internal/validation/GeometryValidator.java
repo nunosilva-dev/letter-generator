@@ -5,9 +5,23 @@ import com.nsdev.lettergenerator.model.layout.Bounds;
 import com.nsdev.lettergenerator.model.layout.Margins;
 import com.nsdev.lettergenerator.model.layout.PageSpec;
 
+/**
+ * Checks physical page reservations and fixed rectangles before the layout engine is invoked. All
+ * dimensions are in millimeters and errors preserve model field paths.
+ */
 final class GeometryValidator {
+    /** Prevents instantiation of the stateless geometry checks. */
     private GeometryValidator() {}
 
+    /**
+     * Requires finite nonnegative margins/zones and positive inner, ordinary-body and final-body
+     * dimensions; returns the derived rectangle sizes for content validation.
+     *
+     * @param page page specification with record defaults already applied
+     * @return derived dimensions whose width and body heights are positive
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if margins, zones, or
+     *     resulting usable dimensions are invalid
+     */
     static PageGeometry page(PageSpec page) {
         Margins margins = page.marginsMm();
         ValidationChecks.nonnegative(margins.top(), "page.marginsMm.top");
@@ -27,6 +41,17 @@ final class GeometryValidator {
         return geometry;
     }
 
+    /**
+     * Requires a positive rectangle wholly inside the supplied zone width/height, allowing only the
+     * shared floating-point geometry tolerance at its far edges.
+     *
+     * @param bounds candidate rectangle, relative to the zone upper-left corner
+     * @param width containing zone width in millimeters
+     * @param height containing zone height in millimeters
+     * @param path model-field path used to locate any validation error
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if the rectangle is
+     *     missing, non-finite, non-positive in size, or outside its zone
+     */
     static void bounds(Bounds bounds, double width, double height, String path) {
         ValidationChecks.required(bounds, path);
         ValidationChecks.nonnegative(bounds.x(), path + ".x");

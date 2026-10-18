@@ -11,8 +11,14 @@ import org.jsoup.nodes.TextNode;
 
 /** Immutable registration order controls execution; source order never controls region layout. */
 final class TemplateTagRegistry {
+    /** Immutable insertion-ordered handlers defining compilation execution order. */
     private final Map<String, TemplateTagHandler> handlers;
 
+    /**
+     * Snapshots handlers in execution order and rejects duplicate tag names at construction.
+     *
+     * @param handlers stateless handlers in desired execution order
+     */
     TemplateTagRegistry(List<TemplateTagHandler> handlers) {
         var registered = new LinkedHashMap<String, TemplateTagHandler>();
         for (var handler : handlers) {
@@ -24,6 +30,12 @@ final class TemplateTagRegistry {
         this.handlers = Collections.unmodifiableMap(registered);
     }
 
+    /**
+     * Defines logo, main, header, footer, signature, watermark execution order. Logo precedes
+     * header so deferred header placement sees its width; source region order has no effect.
+     *
+     * @return immutable standard handler registry
+     */
     static TemplateTagRegistry standard() {
         return new TemplateTagRegistry(
                 List.of(
@@ -35,6 +47,13 @@ final class TemplateTagRegistry {
                         new WatermarkTagHandler()));
     }
 
+    /**
+     * Collects and validates region names/uniqueness and checks all required regions before
+     * executing any handler. Each present region is then compiled in registration order.
+     *
+     * @param root parsed letter root
+     * @param context per-compilation builder, page defaults and named assets
+     */
     void apply(Element root, TemplateContext context) {
         Map<String, Element> regions = regions(root);
         for (var handler : handlers.values()) {
@@ -51,6 +70,13 @@ final class TemplateTagRegistry {
         }
     }
 
+    /**
+     * Indexes immediate children by normalized tag; only comments and blank text are skipped.
+     * Unknown tags, non-element content and duplicate regions fail with their source-node path.
+     *
+     * @param root parsed letter root
+     * @return unique supported regions indexed by tag name
+     */
     private Map<String, Element> regions(Element root) {
         var result = new LinkedHashMap<String, Element>();
         for (var node : root.childNodes()) {

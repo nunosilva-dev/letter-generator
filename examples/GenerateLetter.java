@@ -8,6 +8,14 @@ import java.nio.file.Path;
 
 /** Plain Java application using the fluent API; an optional JSON file uses the advanced API. */
 public final class GenerateLetter {
+    /**
+     * Writes a PDF from the built-in fluent example or from a supplied strict JSON file. Creates
+     * the output parent directory if necessary and prints the absolute output path.
+     *
+     * @param args optional JSON input path at index 0 and output path at index 1; without an input,
+     *     uses {@link #example()}; default output is {@code target/examples/application-letter.pdf}
+     * @throws Exception if file access, document validation or PDF generation fails
+     */
     public static void main(String[] args) throws Exception {
         var generator = new LetterPdfGenerator();
         byte[] bytes =
@@ -22,6 +30,12 @@ public final class GenerateLetter {
         System.out.println("Wrote " + output.toAbsolutePath() + " (" + bytes.length + " bytes)");
     }
 
+    /**
+     * Builds an ordinary application letter showing a repeating text header/footer, heading,
+     * paragraphs, table rows and a flowing text signature.
+     *
+     * @return an immutable example document ready for PDF generation
+     */
     public static LetterDocument example() {
         return Letter.builder()
                 .header("Example Company\nCustomer Services")

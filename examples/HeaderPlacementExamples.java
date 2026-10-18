@@ -8,6 +8,14 @@ import java.util.Locale;
 
 /** Runnable manual examples: built-in fonts, three header alignments and an exact address box. */
 public final class HeaderPlacementExamples {
+    /**
+     * Writes three alignment demonstrations and one exact address-window placement PDF. The
+     * automatic examples use 75 by 25 mm header boxes; the exact box demonstrates adding page
+     * margins to inner-page coordinates to obtain paper-edge measurements.
+     *
+     * @param args optional output directory at index 0, defaulting to {@code target/examples}
+     * @throws Exception if directory creation, PDF generation or file writing fails
+     */
     public static void main(String[] args) throws Exception {
         var generator = new LetterPdfGenerator();
         Path output = Path.of(args.length == 0 ? "target/examples" : args[0]);

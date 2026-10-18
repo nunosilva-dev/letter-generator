@@ -500,7 +500,7 @@ var letter = Letter.builder()
     .build();
 ```
 
-The default placement is `FLOW`. `signatureHeightMm` defaults to 20 mm, must be finite and positive, and also controls the available height for signature HTML/images. With `BOTTOM_LAST`, the builder reserves that height only when signature content is present. Placement and height options work with `signature`, `signatureHtml`, and `signatureBlocks`, regardless of call order. If the final body content cannot fit beside the reserved signature area, an additional last page may be needed.
+The default placement is `FLOW`. `signatureHeightMm` defaults to 20 mm and must be finite and positive. With `BOTTOM_LAST`, the builder reserves that height only when signature content is present. Signature HTML also uses it as the basis for default and percentage-based image heights. Explicit signature parts and typed blocks keep their own dimensions; resize an image part with `ImageSignature.sizeMm(...)`. Placement and height options can be set before or after signature content. If the final body content cannot fit beside the reserved signature area, an additional last page may be needed.
 
 The equivalent template configuration is:
 
@@ -972,7 +972,7 @@ Generator builder methods: `registerFont(String, FontVariant, Path)`, `registerC
 | `signature(SignatureContent...)` | Replace signature with stacked text/image parts |
 | `signatureHtml(String)`, `signatureBlocks(Block...)` | Replace signature with formatted/typed content |
 | `signaturePlacement(SignaturePlacement)` | FLOW (default) or BOTTOM_LAST above the final footer |
-| `signatureHeightMm(double)` | Available signature height; default 20 mm; reserved for BOTTOM_LAST |
+| `signatureHeightMm(double)` | Reserved BOTTOM_LAST zone and HTML image height basis; default 20 mm |
 | `watermark(String/Watermark)` | Set text-default or explicit watermark |
 | `asset(String, Path/byte[])` | Snapshot a named image asset |
 | `fixedElement(FixedElement)` | Append advanced fixed content to configured zones |
@@ -1025,6 +1025,8 @@ HTML input supports the finite vocabulary above. General CSS/browser layout, arb
 For an issue report, include a minimal template/model, scalar values, required font/image assets with permission to share, the Java/library version, and the complete exception including its cause. Use fictional recipient data where possible. `./mvnw clean verify` is the project's full acceptance command; examples and previews are generated under `target`, so clean builds remove and recreate them.
 
 ## 23. Development and code quality
+
+For a guided route through the source, start with [where to start reading](CONTRIBUTING.md#where-to-start-reading). It traces each input API through the shared model, validation, PDF layout and optional watermarking, and maps common changes to their owning classes. Package overviews and method contracts are available in source Javadocs; the contributor guide includes the command to generate browsable internal/API documentation.
 
 ```sh
 ./mvnw spotless:apply   # Apply the checked-in Java formatting convention

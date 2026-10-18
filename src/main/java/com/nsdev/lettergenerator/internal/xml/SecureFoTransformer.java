@@ -15,17 +15,39 @@ import org.xml.sax.XMLReader;
 
 /** Parses only generated FO; external entities, DTDs, and stylesheets are prohibited. */
 public final class SecureFoTransformer {
+    /** SAX feature rejecting any DOCTYPE declaration. */
     private static final String DISALLOW_DOCTYPE =
             "http://apache.org/xml/features/disallow-doctype-decl";
+
+    /** SAX feature disabling external general entities. */
     private static final String EXTERNAL_GENERAL_ENTITIES =
             "http://xml.org/sax/features/external-general-entities";
+
+    /** SAX feature disabling external parameter entities. */
     private static final String EXTERNAL_PARAMETER_ENTITIES =
             "http://xml.org/sax/features/external-parameter-entities";
+
+    /** SAX feature disabling external DTD loading. */
     private static final String LOAD_EXTERNAL_DTD =
             "http://apache.org/xml/features/nonvalidating/load-external-dtd";
 
+    /** Prevents instantiation of the secure identity-transform boundary. */
     private SecureFoTransformer() {}
 
+    /**
+     * Streams generated XSL-FO into the FOP SAX handler using a hardened identity transform.
+     *
+     * <p>DTD declarations, external entities and external stylesheets are prohibited. This is an
+     * engine boundary for XML produced by {@link XmlBuilder}; it is not the user-facing HTML
+     * parser.
+     *
+     * @param xml complete generated FO document
+     * @param handler destination supplied by the current FOP rendering operation
+     * @throws SAXException if the secure XML reader or its required features cannot be created
+     * @throws ParserConfigurationException if a secure SAX parser cannot be configured
+     * @throws TransformerException if transform configuration, XML parsing, or delivery to the
+     *     handler fails, including rejection of prohibited XML
+     */
     public static void transform(String xml, ContentHandler handler)
             throws SAXException, ParserConfigurationException, TransformerException {
         XMLReader reader = secureReader();
@@ -39,6 +61,14 @@ public final class SecureFoTransformer {
                         new SAXResult(handler));
     }
 
+    /**
+     * Creates a namespace-aware parser that rejects DOCTYPE declarations and all external entity
+     * resolution.
+     *
+     * @return namespace-aware XML reader with external resolution disabled
+     * @throws ParserConfigurationException if the parser factory cannot satisfy secure settings
+     * @throws SAXException if a required feature or XML reader is unavailable
+     */
     private static XMLReader secureReader() throws ParserConfigurationException, SAXException {
         SAXParserFactory factory = SAXParserFactory.newInstance();
         factory.setNamespaceAware(true);

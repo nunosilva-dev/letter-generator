@@ -15,19 +15,58 @@ import java.util.List;
 
 /** Compiles ordinary letter regions to the explicit geometry required by the rendering model. */
 public final class LetterRegions {
+    /** Separation between generated fixed regions and the body, in millimeters. */
     private static final double REGION_GAP_MM = 5.0;
+
+    /** Stable identifier assigned to the generated repeated header. */
     private static final String HEADER_ID = "letter.header";
+
+    /** Stable identifier assigned to the generated repeated footer. */
     private static final String FOOTER_ID = "letter.footer";
+
+    /** Stable identifier assigned to the generated repeated logo. */
     private static final String LOGO_ID = "letter.logo";
 
+    /** Prevents construction of this static helper. */
     private LetterRegions() {}
 
+    /**
+     * Geometry output consumed by the letter builder when assembling its document.
+     *
+     * @param page page specification with body reservations in millimeters
+     * @param elements fixed elements in logo, header, footer, then caller-supplied order
+     */
     public record Layout(PageSpec page, List<FixedElement> elements) {
+        /**
+         * Snapshots the element list; elements and the immutable page are retained.
+         *
+         * @param page page geometry
+         * @param elements non-null element list without null entries
+         * @throws NullPointerException if the list or an entry is null
+         */
         public Layout {
             elements = List.copyOf(elements);
         }
     }
 
+    /**
+     * Compiles convenience regions into fixed elements and body-height reservations. A populated
+     * top or bottom zone includes a 5 mm separation gap. Extra top/bottom elements activate the
+     * corresponding reservation but do not enlarge its configured height; later validation checks
+     * their fit. Generated regions repeat on every page.
+     *
+     * @param size non-null paper size
+     * @param margins non-null physical margins in millimeters
+     * @param header non-null header block list
+     * @param footer non-null footer block list
+     * @param logo optional fitted logo
+     * @param headerBounds non-null resolved top-zone header box in millimeters
+     * @param footerHeightMm configured footer height in millimeters
+     * @param extra non-null additional fixed elements, appended after generated ones
+     * @return page specification and a snapshot of the combined fixed elements
+     * @throws IllegalArgumentException if margins, body space or the populated header box are
+     *     invalid
+     */
     public static Layout arrange(
             PageSize size,
             Margins margins,

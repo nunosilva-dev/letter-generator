@@ -10,8 +10,18 @@ import org.jsoup.nodes.Element;
 
 /** Maps rectangular text tables, including inherited header/row/cell text and background styles. */
 final class HtmlTables {
+    /** Prevents construction of this static helper. */
     private HtmlTables() {}
 
+    /**
+     * Reads tr children or thead/tbody groups, inheriting text and background through table,
+     * section, row and cell. Requires body rows, a rectangular column count, at most one header row
+     * and a positive weight for each column. Width/height, spans and block cell content fail.
+     *
+     * @param element parsed element being read and used for diagnostics
+     * @param inherited inherited text style, or null for no overrides
+     * @return rectangular table with text cells and relative column weights
+     */
     static TableBlock read(Element element, Style inherited) {
         MarkupSupport.elementOnlyContent(element);
         MarkupSupport.attributes(element, "column-weights");
@@ -67,6 +77,18 @@ final class HtmlTables {
         return new TableBlock(weights, header, body, style);
     }
 
+    /**
+     * Appends one nonempty text-only row. A thead row is a header; an initial all-th row is also
+     * promoted when no header/body has been recorded. Cell semantics and local styles overlay
+     * inherited row text properties, while nearest specified background wins independently.
+     *
+     * @param row parsed table row
+     * @param parent parent text style, with null meaning no overrides
+     * @param background inherited background color, or null
+     * @param isHeader whether the enclosing section declares a header row
+     * @param header caller-owned header cell list
+     * @param body caller-owned body row list
+     */
     private static void addRow(
             Element row,
             Style parent,
@@ -114,6 +136,12 @@ final class HtmlTables {
         }
     }
 
+    /**
+     * Keeps table geometry weight-based by rejecting CSS width/height at every table level.
+     *
+     * @param element parsed element being read and used for diagnostics
+     * @param appearance parsed CSS appearance to restrict
+     */
     private static void rejectDimensions(Element element, HtmlStyles.Appearance appearance) {
         MarkupSupport.require(
                 appearance.width() == null && appearance.height() == null,

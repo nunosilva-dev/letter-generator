@@ -16,12 +16,29 @@ import org.apache.fop.apps.FopFactory;
 import org.apache.fop.apps.MimeConstants;
 import org.xml.sax.SAXException;
 
-/** Per-call FOP state keeps the reusable generator free of shared rendering caches. */
+/**
+ * Single-attempt boundary between generated FO and Apache FOP.
+ *
+ * <p>Each call creates its own factory, user agent, checked renderer and output stream. Engine
+ * events and painted-ink problems are returned as typed diagnostics, allowing {@code
+ * DocumentRenderer} to make its narrow retry decision. Only the coordinator decides whether a
+ * result can reach the caller.
+ */
 public final class FopRenderer {
+    /** Producer metadata written by every FOP rendering attempt. */
     public static final String PRODUCER = "Letter Generator";
 
+    /** Prevents construction of the single-attempt rendering utility. */
     private FopRenderer() {}
 
+    /**
+     * Renders one composition with supplied resource/font snapshots and gathers layout diagnostics.
+     *
+     * @param composition generated FO and the images registered by its composer
+     * @param fonts immutable registered fonts available to this render
+     * @return output bytes plus selected masters and all rejected-layout diagnostics
+     * @throws PdfGenerationException if configuration, XML transformation or the FOP engine fails
+     */
     public static FopRenderResult render(FoComposer.Composition composition, FontRegistry fonts) {
         try {
             FopFactory factory = FopConfiguration.factory(composition.images(), fonts);

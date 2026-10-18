@@ -5,10 +5,21 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
 
-/** Rejects HTML recovery that would otherwise discard or relocate caller-supplied content. */
+/** Parses HTML fragments and rejects reported parse errors before model compilation. */
 public final class HtmlParser {
+    /** Prevents construction of this static helper. */
     private HtmlParser() {}
 
+    /**
+     * Parses into a synthetic HTML body and rejects the first error reported by jsoup's HTML
+     * parser. Accepted HTML normalization still occurs; this is not XML well-formedness checking.
+     * The returned mutable tree is owned by this call and may be bound by the template compiler.
+     *
+     * @param source non-null fragment text, possibly empty
+     * @return synthetic body containing the parsed nodes
+     * @throws IllegalArgumentException if source is null
+     * @throws InvalidLetterException if the parser reports a markup error
+     */
     public static Element body(String source) {
         if (source == null) {
             throw new IllegalArgumentException("Markup must not be null");

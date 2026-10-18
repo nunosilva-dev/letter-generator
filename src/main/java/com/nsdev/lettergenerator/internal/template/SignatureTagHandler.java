@@ -8,6 +8,7 @@ import org.jsoup.nodes.Element;
 
 /** Signature placement, reserved height and styled text/image content. */
 final class SignatureTagHandler implements TemplateTagHandler {
+    /** Default signature height reserved for block content, in millimeters. */
     private static final double DEFAULT_HEIGHT_MM = 20.0;
 
     @Override
@@ -15,6 +16,10 @@ final class SignatureTagHandler implements TemplateTagHandler {
         return "signature";
     }
 
+    /**
+     * Configures flow or bottom-last placement and a finite positive reserved height, defaulting to
+     * 20 mm, then replaces the signature blocks. Breaks inside signature content are rejected.
+     */
     @Override
     public void handle(Element element, TemplateContext context) {
         SignaturePlacement placement;
