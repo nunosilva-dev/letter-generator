@@ -1,4 +1,4 @@
-package com.nsdev.lettergenerator.template;
+package com.nsdev.lettergenerator.builder;
 
 import com.nsdev.lettergenerator.exception.InvalidLetterException;
 import com.nsdev.lettergenerator.internal.builder.BuilderChecks;
@@ -10,28 +10,27 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Mutable request builder for a stored letter template and application-supplied scalar values. */
-public final class TemplateBuilder {
-    public static final String FORMAT = "LETTER_HTML_V1";
+/** Mutable builder for letters from HTML, scalar placeholder values and named image assets. */
+public final class HtmlLetterBuilder {
     private final String source;
     private final boolean substitute;
     private final Map<String, byte[]> assets = new LinkedHashMap<>();
     private Map<String, String> values = Map.of();
 
-    private TemplateBuilder(String source, boolean substitute) {
+    private HtmlLetterBuilder(String source, boolean substitute) {
         this.source = BuilderChecks.required(source, "template markup");
         this.substitute = substitute;
     }
 
-    public static TemplateBuilder template(String source) {
-        return new TemplateBuilder(source, true);
+    public static HtmlLetterBuilder template(String source) {
+        return new HtmlLetterBuilder(source, true);
     }
 
-    public static TemplateBuilder resolvedHtml(String source) {
-        return new TemplateBuilder(source, false);
+    public static HtmlLetterBuilder resolvedHtml(String source) {
+        return new HtmlLetterBuilder(source, false);
     }
 
-    public TemplateBuilder values(Map<String, ?> replacements) {
+    public HtmlLetterBuilder values(Map<String, ?> replacements) {
         BuilderChecks.require(
                 substitute,
                 "Use Letter.template(...) when supplying placeholder values; fromHtml expects already-resolved markup");
@@ -54,13 +53,13 @@ public final class TemplateBuilder {
         return this;
     }
 
-    public TemplateBuilder asset(String name, byte[] data) {
+    public HtmlLetterBuilder asset(String name, byte[] data) {
         BuilderChecks.require(name != null && !name.isBlank(), "Asset name must not be blank");
         assets.put(name, BuilderChecks.required(data, "asset bytes").clone());
         return this;
     }
 
-    public TemplateBuilder asset(String name, Path path) throws IOException {
+    public HtmlLetterBuilder asset(String name, Path path) throws IOException {
         return asset(name, Files.readAllBytes(path));
     }
 

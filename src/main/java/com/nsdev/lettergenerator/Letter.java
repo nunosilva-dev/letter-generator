@@ -1,7 +1,7 @@
 package com.nsdev.lettergenerator;
 
+import com.nsdev.lettergenerator.builder.HtmlLetterBuilder;
 import com.nsdev.lettergenerator.builder.LetterBuilder;
-import com.nsdev.lettergenerator.template.TemplateBuilder;
 
 /** Content-first entry point. Defaults to A4, standard margins and readable letter typography. */
 public final class Letter {
@@ -14,11 +14,11 @@ public final class Letter {
         return new LetterBuilder();
     }
 
-    public static TemplateBuilder template(String markup) {
-        return TemplateBuilder.template(markup);
+    public static HtmlLetterBuilder template(String markup) {
+        return HtmlLetterBuilder.template(markup);
     }
 
-    public static TemplateBuilder fromHtml(String resolvedMarkup) {
-        return TemplateBuilder.resolvedHtml(resolvedMarkup);
+    public static HtmlLetterBuilder fromHtml(String resolvedMarkup) {
+        return HtmlLetterBuilder.resolvedHtml(resolvedMarkup);
     }
 }

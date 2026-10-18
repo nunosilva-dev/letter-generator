@@ -119,6 +119,8 @@ All input paths produce the same immutable document model and use the same valid
 | Exact page selectors or multiple fixed boxes | Immutable model records | Full geometry contract |
 | An application boundary exchanges structured documents | `generator.generateJson(json)` | Strict versioned JSON model |
 
+`Letter.template(...)` and `Letter.fromHtml(...)` both return `HtmlLetterBuilder` from `com.nsdev.lettergenerator.builder`, alongside `LetterBuilder` and `TableBuilder`.
+
 Plain `.body("<strong>Hello</strong>")` prints those characters literally. To interpret supported markup, use `.bodyHtml(...)` or a template API.
 
 ## 4. Paper, margins, units and layout
@@ -550,7 +552,7 @@ var letter = Letter.template(templateText)
 byte[] pdf = new LetterPdfGenerator().generate(letter);
 ```
 
-The supported markup format is `LETTER_HTML_V1`, exposed as `TemplateBuilder.FORMAT`. Exactly one `letter` root and one `main` are required. Optional regions are one each of `header`, `footer`, `signature`, `logo`, and `watermark`. Region order in the source does not change their role. Body block order is preserved. A logo region contains one `img`; watermark syntax is described below.
+Exactly one `letter` root and one `main` are required. Optional regions are one each of `header`, `footer`, `signature`, `logo`, and `watermark`. Region order in the source does not change their role. Body block order is preserved. A logo region contains one `img`; watermark syntax is described below.
 
 ### Substitution rules
 
@@ -818,7 +820,7 @@ Links permit `http`, `https` and `mailto`. Document text is escaped before inter
 
 Build a generator once and reuse it. `LetterPdfGenerator` instances are safe for concurrent generation because each render owns its engine state. A no-argument generator needs no configuration; a custom-font generator retains immutable font bytes after its builder completes.
 
-`LetterBuilder`, `TemplateBuilder`, `TableBuilder` and style builders are mutable request-building objects. Do not share one mutable builder between concurrent requests. Each document build produces an independent immutable snapshot. The library copies image data and collection contents; later changes to caller-owned data do not mutate a built letter.
+`LetterBuilder`, `HtmlLetterBuilder`, `TableBuilder` and style builders are mutable request-building objects. Do not share one mutable builder between concurrent requests. Each document build produces an independent immutable snapshot. The library copies image data and collection contents; later changes to caller-owned data do not mutate a built letter.
 
 Generation returns a `byte[]` only after validation, layout and any watermark pass finish. Pass the returned bytes to the caller. For an HTTP response, the application sets `Content-Type: application/pdf` and the desired download filename. Framework/servlet integration is application-owned.
 
@@ -982,7 +984,7 @@ Configuration calls replace their option; body and advanced fixed-element calls 
 
 | API | Methods/options |
 | --- | --- |
-| `TemplateBuilder` | `values(Map<String, ?>)`, `asset(String, Path/byte[])`, `build()`; `FORMAT` constant |
+| `HtmlLetterBuilder` | `values(Map<String, ?>)`, `asset(String, Path/byte[])`, `build()` |
 | `TableBuilder` | `row(String...)`, `columnWeights(double...)`, `style(Style)`, `headerStyle(Style)`, `headerBackground(String)`, `build()` |
 | `Style.builder()` | Family, size, color, emphasis booleans, alignment, line-height and before/after spacing |
 | `TextSignature.of(String)` | Optional `.style(Style)`, immutable result |
@@ -1035,7 +1037,7 @@ The package layout separates responsibilities:
 
 | Package under `com.nsdev.lettergenerator` | Responsibility |
 | --- | --- |
-| root, `builder`, `template`, `signature`, `model.*`, `font`, `exception` | Supported application contract |
+| root, `builder`, `signature`, `model.*`, `font`, `exception` | Supported application contract |
 | `internal.markup`, `internal.template` | Strict document markup, map binding and template composition |
 | `internal.validation`, `internal.json` | Field-path validation and strict JSON parsing |
 | `internal.font`, `internal.style`, `internal.layout` | Immutable font snapshots, inherited styles, dimensions and units |

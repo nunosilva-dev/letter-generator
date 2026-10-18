@@ -1,2 +1,2 @@
-/** Fluent, mutable builders that produce immutable letter and table models. */
+/** Fluent, mutable builders for Java/HTML letters and tables, producing immutable models. */
 package com.nsdev.lettergenerator.builder;
