@@ -3,10 +3,13 @@ package com.nsdev.lettergenerator.internal.render.fo;
 import com.nsdev.lettergenerator.internal.xml.XmlBuilder;
 import com.nsdev.lettergenerator.model.LetterDocument;
 import com.nsdev.lettergenerator.model.Section;
+import com.nsdev.lettergenerator.model.block.Block;
+import com.nsdev.lettergenerator.model.block.GroupBlock;
 import com.nsdev.lettergenerator.model.block.PageBreakBlock;
 import com.nsdev.lettergenerator.model.layout.Signature;
 import com.nsdev.lettergenerator.model.layout.SignaturePlacement;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -65,17 +68,19 @@ public final class FoComposer {
         XmlBuilder xml = new XmlBuilder(FO_PREFIX, FO_NAMESPACE);
         FoBlockWriter blocks = new FoBlockWriter(xml, document.defaultStyle());
         FoPageLayoutWriter layout = new FoPageLayoutWriter(xml, document, blocks);
-        xml.start("root");
+        xml.start("root").attribute("xmlns:fox", "http://xmlgraphics.apache.org/fop/extensions");
+        FoDocumentSettings.write(xml, document.settings());
         layout.masters(dedicatedSignaturePage);
+        FoDocumentSettings.catalog(xml, document.settings());
         xml.start("page-sequence")
+                .attribute("id", FoPageLayoutWriter.PAGE_SEQUENCE_ID)
                 .attribute("master-reference", FoPageLayoutWriter.PAGE_SEQUENCE_NAME)
                 .attribute("force-page-count", "no-force");
         layout.fixedContent();
         xml.start("flow").attribute("flow-name", FoPageLayoutWriter.BODY_FLOW_NAME);
         boolean hasPageBreak =
                 document.sections().stream()
-                        .flatMap(section -> section.blocks().stream())
-                        .anyMatch(PageBreakBlock.class::isInstance);
+                        .anyMatch(section -> containsPageBreak(section.blocks()));
         if (hasPageBreak) {
             FoPageBreaks.anchor(xml, false);
         }
@@ -88,6 +93,21 @@ public final class FoComposer {
         }
         xml.end().end().end();
         return new Composition(xml.finish(), blocks.images());
+    }
+
+    /**
+     * Finds breaks inside transparent style scopes as well as direct section content.
+     *
+     * @param content validated ordered blocks
+     * @return whether initial flow anchoring is needed
+     */
+    private static boolean containsPageBreak(List<Block> content) {
+        return content.stream()
+                .anyMatch(
+                        block ->
+                                block instanceof PageBreakBlock
+                                        || block instanceof GroupBlock group
+                                                && containsPageBreak(group.blocks()));
     }
 
     /**

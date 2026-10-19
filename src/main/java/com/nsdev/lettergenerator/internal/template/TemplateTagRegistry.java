@@ -1,7 +1,10 @@
 package com.nsdev.lettergenerator.internal.template;
 
 import com.nsdev.lettergenerator.internal.markup.MarkupSupport;
+import com.nsdev.lettergenerator.letter.LetterElement;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +43,13 @@ final class TemplateTagRegistry {
         return new TemplateTagRegistry(
                 List.of(
                         new LogoTagHandler(),
+                        new LetterPartTagHandler(LetterElement.SENDER),
+                        new DateTagHandler(),
+                        new LetterPartTagHandler(LetterElement.RECIPIENT),
+                        new ReferenceTagHandler(),
+                        new LetterPartTagHandler(LetterElement.SUBJECT),
+                        new LetterPartTagHandler(LetterElement.SALUTATION),
+                        new LetterPartTagHandler(LetterElement.CLOSING),
                         new MainTagHandler(),
                         new HeaderTagHandler(),
                         new FooterTagHandler(),
@@ -55,7 +65,7 @@ final class TemplateTagRegistry {
      * @param context per-compilation builder, page defaults and named assets
      */
     void apply(Element root, TemplateContext context) {
-        Map<String, Element> regions = regions(root);
+        Map<String, List<Element>> regions = regions(root);
         for (var handler : handlers.values()) {
             MarkupSupport.require(
                     !handler.required() || regions.containsKey(handler.tagName()),
@@ -63,8 +73,7 @@ final class TemplateTagRegistry {
                     "Letter requires one " + handler.tagName() + " element");
         }
         for (var handler : handlers.values()) {
-            Element region = regions.get(handler.tagName());
-            if (region != null) {
+            for (Element region : regions.getOrDefault(handler.tagName(), List.of())) {
                 handler.handle(region, context);
             }
         }
@@ -77,8 +86,9 @@ final class TemplateTagRegistry {
      * @param root parsed letter root
      * @return unique supported regions indexed by tag name
      */
-    private Map<String, Element> regions(Element root) {
-        var result = new LinkedHashMap<String, Element>();
+    private Map<String, List<Element>> regions(Element root) {
+        var result = new LinkedHashMap<String, List<Element>>();
+        var identities = new HashSet<String>();
         for (var node : root.childNodes()) {
             if (node instanceof Comment || node instanceof TextNode text && text.isBlank()) {
                 continue;
@@ -89,9 +99,10 @@ final class TemplateTagRegistry {
             MarkupSupport.require(
                     handlers.containsKey(tag), element, "Unsupported letter region: " + tag);
             MarkupSupport.require(
-                    result.putIfAbsent(tag, element) == null,
+                    identities.add(tag + ":" + handlers.get(tag).regionKey(element)),
                     element,
                     "Duplicate letter region: " + tag);
+            result.computeIfAbsent(tag, ignored -> new ArrayList<>()).add(element);
         }
         return result;
     }

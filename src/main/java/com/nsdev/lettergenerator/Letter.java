@@ -2,11 +2,13 @@ package com.nsdev.lettergenerator;
 
 import com.nsdev.lettergenerator.builder.HtmlLetterBuilder;
 import com.nsdev.lettergenerator.builder.LetterBuilder;
+import com.nsdev.lettergenerator.internal.json.JsonInput;
+import com.nsdev.lettergenerator.model.LetterDocument;
 
 /**
  * Starting point for content-first letters and the supported HTML letter template format. Use
- * {@link #builder()} for Java content, {@link #template(String)} for markup with scalar bindings,
- * or {@link #fromHtml(String)} for already-resolved markup. Build a {@link
+ * {@link #builder()} for Java content, {@link #template(String)} for markup with typed map
+ * bindings, or {@link #fromHtml(String)} for already-resolved markup. Build a {@link
  * com.nsdev.lettergenerator.model.LetterDocument} and pass it to {@link
  * LetterPdfGenerator#generate(com.nsdev.lettergenerator.model.LetterDocument)}.
  *
@@ -32,6 +34,19 @@ public final class Letter {
      */
     public static LetterBuilder builder() {
         return new LetterBuilder();
+    }
+
+    /**
+     * Parses strict schema-version-one JSON into the shared immutable model. This does not run
+     * model validation or PDF layout; pass the result to the generator for either operation.
+     *
+     * @param json nonnull JSON document
+     * @return parsed document, or null for the JSON null literal
+     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException for malformed or
+     *     incompatible input
+     */
+    public static LetterDocument fromJson(String json) {
+        return JsonInput.read(json);
     }
 
     /**

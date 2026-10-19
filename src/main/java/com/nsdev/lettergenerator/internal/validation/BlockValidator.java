@@ -4,14 +4,18 @@ import com.nsdev.lettergenerator.internal.font.FontRegistry;
 import com.nsdev.lettergenerator.internal.layout.PageGeometry;
 import com.nsdev.lettergenerator.internal.style.ResolvedStyle;
 import com.nsdev.lettergenerator.model.block.Block;
+import com.nsdev.lettergenerator.model.block.BoxBlock;
+import com.nsdev.lettergenerator.model.block.CanvasBlock;
+import com.nsdev.lettergenerator.model.block.ColumnsBlock;
+import com.nsdev.lettergenerator.model.block.GroupBlock;
 import com.nsdev.lettergenerator.model.block.Heading;
 import com.nsdev.lettergenerator.model.block.ImageBlock;
 import com.nsdev.lettergenerator.model.block.ListBlock;
 import com.nsdev.lettergenerator.model.block.PageBreakBlock;
 import com.nsdev.lettergenerator.model.block.Paragraph;
 import com.nsdev.lettergenerator.model.block.TableBlock;
+import com.nsdev.lettergenerator.model.layout.Keep;
 import com.nsdev.lettergenerator.model.style.Style;
-import com.nsdev.lettergenerator.model.table.TableCell;
 import com.nsdev.lettergenerator.model.text.TextRun;
 import java.util.List;
 
@@ -86,22 +90,73 @@ final class BlockValidator {
                 continue;
             }
             styles.validate(block.style(), blockPath + ".style");
+            if (block instanceof Heading heading) {
+                styles.validate(heading.semanticStyle(), blockPath + ".semanticStyle");
+            }
             ResolvedStyle resolved =
                     ResolvedStyle.defaults(block instanceof Heading)
                             .overlay(defaults)
                             .overlay(section)
+                            .overlay(
+                                    block instanceof Heading heading
+                                            ? heading.semanticStyle()
+                                            : null)
                             .overlay(block.style());
             fonts.requireVariant(
                     resolved.fontFamily(), resolved.variant(), blockPath + ".style.fontFamily");
-            if (block instanceof Paragraph paragraph) {
+            if (block instanceof GroupBlock group) {
+                ValidationChecks.required(group.blocks(), blockPath + ".blocks");
+                ValidationChecks.require(
+                        !group.blocks().isEmpty(), blockPath + ".blocks", "must not be empty");
+                styles.validate(group.defaultStyle(), blockPath + ".defaultStyle");
+                Style parent =
+                        (group.defaultStyle() == null ? Style.plain() : group.defaultStyle())
+                                .overlay(defaults)
+                                .overlay(section)
+                                .overlay(group.style());
+                validate(
+                        group.blocks(),
+                        blockPath + ".blocks",
+                        parent,
+                        null,
+                        width,
+                        pageBreaksAllowed
+                                && group.style() != null
+                                && group.style().keepTogether() == Keep.AUTO);
+            } else if (block instanceof CanvasBlock canvas) {
+                new LayoutValidator(this, styles)
+                        .canvas(
+                                canvas,
+                                blockPath,
+                                containerStyle(defaults, section, canvas.style()),
+                                width);
+            } else if (block instanceof ColumnsBlock columns) {
+                new LayoutValidator(this, styles)
+                        .columns(
+                                columns,
+                                blockPath,
+                                containerStyle(defaults, section, columns.style()),
+                                width);
+            } else if (block instanceof BoxBlock box) {
+                new LayoutValidator(this, styles)
+                        .box(
+                                box,
+                                blockPath,
+                                containerStyle(defaults, section, box.style()),
+                                width,
+                                pageBreaksAllowed);
+            } else if (block instanceof Paragraph paragraph) {
                 runs(paragraph.runs(), blockPath + ".runs", resolved);
             } else if (block instanceof Heading heading) {
                 runs(heading.runs(), blockPath + ".runs", resolved);
             } else if (block instanceof ListBlock list) {
                 list(list, blockPath, resolved);
             } else if (block instanceof TableBlock table) {
-                table(table, blockPath, resolved);
+                new TableValidator(styles, this).validate(table, blockPath, resolved, width);
             } else if (block instanceof ImageBlock image) {
+                if (image.altText() != null) {
+                    ValidationChecks.text(image.altText(), blockPath + ".altText");
+                }
                 ImageValidator.validate(
                         image.data(),
                         image.mimeType(),
@@ -117,6 +172,19 @@ final class BlockValidator {
     }
 
     /**
+     * Retains only declared ancestor values so native heading defaults remain visible to children.
+     * Materializing ordinary body defaults here would hide required bold heading faces.
+     *
+     * @param defaults nullable document or group defaults
+     * @param section nullable containing typography
+     * @param local nullable container style
+     * @return declared inheritance without synthesized body typography
+     */
+    private static Style containerStyle(Style defaults, Style section, Style local) {
+        return (defaults == null ? Style.plain() : defaults).overlay(section).overlay(local);
+    }
+
+    /**
      * Requires at least one nonempty list item and validates each item as styled inline runs.
      *
      * @param list list block being checked
@@ -126,69 +194,31 @@ final class BlockValidator {
      *     text/style/link content are invalid
      */
     private void list(ListBlock list, String path, ResolvedStyle resolved) {
-        ValidationChecks.required(list.items(), path + ".items");
+        ValidationChecks.require(
+                (list.items() == null) != (list.contentItems() == null),
+                path,
+                "exactly one of items or contentItems is required");
+        if (list.contentItems() != null) {
+            ValidationChecks.require(
+                    !list.contentItems().isEmpty(), path + ".contentItems", "must not be empty");
+            for (int index = 0; index < list.contentItems().size(); index++) {
+                var item = list.contentItems().get(index);
+                String itemPath = path + ".contentItems[" + index + "]";
+                ValidationChecks.required(item, itemPath);
+                runs(item.runs(), itemPath + ".runs", resolved);
+                for (int child = 0; child < item.children().size(); child++) {
+                    var nested = item.children().get(child);
+                    String nestedPath = itemPath + ".children[" + child + "]";
+                    ValidationChecks.required(nested, nestedPath);
+                    styles.validate(nested.style(), nestedPath + ".style");
+                    list(nested, nestedPath, resolved.overlay(nested.style()));
+                }
+            }
+            return;
+        }
         ValidationChecks.require(!list.items().isEmpty(), path + ".items", "must not be empty");
         for (int index = 0; index < list.items().size(); index++) {
             runs(list.items().get(index), path + ".items[" + index + "]", resolved);
-        }
-    }
-
-    /**
-     * Requires finite positive column weights, a nonempty body and rectangular header/body rows
-     * matching the column count.
-     *
-     * @param table table block being checked
-     * @param path model-field path used to locate any validation error
-     * @param resolved effective table style inherited by cell text
-     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if weights, row shape,
-     *     cells, or cell content are invalid
-     */
-    private void table(TableBlock table, String path, ResolvedStyle resolved) {
-        ValidationChecks.required(table.columnWeights(), path + ".columnWeights");
-        ValidationChecks.require(
-                !table.columnWeights().isEmpty(), path + ".columnWeights", "must not be empty");
-        double sum = 0;
-        for (int index = 0; index < table.columnWeights().size(); index++) {
-            Double weight = table.columnWeights().get(index);
-            ValidationChecks.positive(weight, path + ".columnWeights[" + index + "]");
-            sum += weight;
-        }
-        ValidationChecks.require(
-                Double.isFinite(sum), path + ".columnWeights", "sum must be finite");
-        int columns = table.columnWeights().size();
-        if (!table.header().isEmpty()) {
-            cells(table.header(), columns, path + ".header", resolved);
-        }
-        ValidationChecks.required(table.rows(), path + ".rows");
-        ValidationChecks.require(!table.rows().isEmpty(), path + ".rows", "must not be empty");
-        for (int index = 0; index < table.rows().size(); index++) {
-            cells(table.rows().get(index), columns, path + ".rows[" + index + "]", resolved);
-        }
-    }
-
-    /**
-     * Checks one rectangular row and overlays cell style before validating its text runs and
-     * optional background color.
-     *
-     * @param cells header or body-row cells, required to match the column count
-     * @param columns expected number of cells
-     * @param path model-field path used to locate any validation error
-     * @param resolved effective table style, before cell and run overrides
-     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if row shape, a cell, its
-     *     fill, or its text/style/link content is invalid
-     */
-    private void cells(List<TableCell> cells, int columns, String path, ResolvedStyle resolved) {
-        ValidationChecks.required(cells, path);
-        ValidationChecks.require(cells.size() == columns, path, "must match the column count");
-        for (int index = 0; index < cells.size(); index++) {
-            String cellPath = path + "[" + index + "]";
-            TableCell cell = cells.get(index);
-            ValidationChecks.required(cell, cellPath);
-            styles.validate(cell.style(), cellPath + ".style");
-            if (cell.backgroundColor() != null) {
-                StyleValidator.color(cell.backgroundColor(), cellPath + ".backgroundColor");
-            }
-            runs(cell.runs(), cellPath + ".runs", resolved.overlay(cell.style()));
         }
     }
 
@@ -202,7 +232,7 @@ final class BlockValidator {
      * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if a run, its text, its
      *     resolved font variant, or its link is invalid
      */
-    private void runs(List<TextRun> runs, String path, ResolvedStyle inherited) {
+    void runs(List<TextRun> runs, String path, ResolvedStyle inherited) {
         ValidationChecks.required(runs, path);
         ValidationChecks.require(!runs.isEmpty(), path, "must not be empty");
         for (int index = 0; index < runs.size(); index++) {
@@ -210,6 +240,10 @@ final class BlockValidator {
             TextRun run = runs.get(index);
             ValidationChecks.required(run, runPath);
             ValidationChecks.text(run.text(), runPath + ".text");
+            ValidationChecks.require(
+                    run.pageNumber() == null || run.text().isEmpty(),
+                    runPath + ".text",
+                    "page fields must have empty literal text");
             styles.validate(run.style(), runPath + ".style");
             ResolvedStyle resolved = inherited.overlay(run.style());
             fonts.requireVariant(

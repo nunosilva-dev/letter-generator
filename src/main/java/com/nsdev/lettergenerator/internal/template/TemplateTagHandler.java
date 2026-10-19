@@ -21,6 +21,16 @@ interface TemplateTagHandler {
     }
 
     /**
+     * Identifies one region instance for duplicate detection; ordinary tags remain unique.
+     *
+     * @param element parsed region being indexed
+     * @return stable identity within this handler's region kind
+     */
+    default String regionKey(Element element) {
+        return tagName();
+    }
+
+    /**
      * Compiles a validated unique region into the current builder.
      *
      * @param element source region; handler owns validation of its attributes and content

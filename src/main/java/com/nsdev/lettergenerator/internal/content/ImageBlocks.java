@@ -17,12 +17,12 @@ public final class ImageBlocks {
     private ImageBlocks() {}
 
     /**
-     * Decodes caller bytes and scales their intrinsic pixel aspect ratio into a millimeter box. The
-     * first ImageIO reader must report PNG or JPEG. Scaling may enlarge small images; no raster
-     * resampling occurs because the result retains the encoded bytes and stores display dimensions.
-     * The caller's byte array is copied before decoding.
+     * Decodes caller bytes and scales their intrinsic pixel aspect ratio into a millimeter box.
+     * PNG/JPEG use ImageIO; static SVG uses the secure SVG parser. Scaling may enlarge small
+     * images; no raster resampling occurs because the result retains the encoded bytes and stores
+     * display dimensions. The caller's byte array is copied before decoding.
      *
-     * @param supplied non-null readable PNG or JPEG bytes
+     * @param supplied non-null readable PNG, JPEG or static SVG bytes
      * @param maxWidthMm finite positive maximum display width
      * @param maxHeightMm finite positive maximum display height
      * @return an image with copied bytes, detected MIME type, fitted dimensions and null style
@@ -34,13 +34,22 @@ public final class ImageBlocks {
         byte[] data = ArgumentChecks.required(supplied, "image bytes").clone();
         try (var input = new MemoryCacheImageInputStream(new ByteArrayInputStream(data))) {
             var readers = ImageIO.getImageReaders(input);
-            ArgumentChecks.require(
-                    readers.hasNext(), "Image must contain readable PNG or JPEG bytes");
+            if (!readers.hasNext()) {
+                var size = SvgImages.inspect(data);
+                double scale = Math.min(maxWidthMm / size.width(), maxHeightMm / size.height());
+                return new ImageBlock(
+                        data,
+                        ImageFormat.SVG.mimeType(),
+                        size.width() * scale,
+                        size.height() * scale,
+                        null);
+            }
             ImageReader reader = readers.next();
             try {
                 ImageFormat format =
                         ImageFormat.fromReaderName(reader.getFormatName().toLowerCase(Locale.ROOT));
-                ArgumentChecks.require(format != null, "Only PNG and JPEG images are supported");
+                ArgumentChecks.require(
+                        format != null, "Only PNG, JPEG and static SVG images are supported");
                 reader.setInput(input, true, true);
                 var image = reader.read(0);
                 double scale =
@@ -70,6 +79,6 @@ public final class ImageBlocks {
      * @throws NullPointerException if image is null
      */
     public static ImageBlock fit(ImageBlock image, double maxWidthMm, double maxHeightMm) {
-        return fit(image.data(), maxWidthMm, maxHeightMm);
+        return fit(image.data(), maxWidthMm, maxHeightMm).withAltText(image.altText());
     }
 }

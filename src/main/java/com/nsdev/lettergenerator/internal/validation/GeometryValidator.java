@@ -23,6 +23,8 @@ final class GeometryValidator {
      *     resulting usable dimensions are invalid
      */
     static PageGeometry page(PageSpec page) {
+        ValidationChecks.positive(page.widthMm(), "page.widthMm");
+        ValidationChecks.positive(page.heightMm(), "page.heightMm");
         Margins margins = page.marginsMm();
         ValidationChecks.nonnegative(margins.top(), "page.marginsMm.top");
         ValidationChecks.nonnegative(margins.right(), "page.marginsMm.right");

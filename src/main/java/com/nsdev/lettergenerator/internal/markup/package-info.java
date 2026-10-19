@@ -8,7 +8,8 @@
  * through {@link com.nsdev.lettergenerator.internal.markup.MarkupSupport}.
  *
  * <p>{@link com.nsdev.lettergenerator.internal.markup.HtmlStyles} overlays inherited text
- * properties, semantic tag defaults, then local CSS; paragraph spacing does not inherit. Image
+ * properties, semantic tag defaults, then local CSS. Explicit container scopes and lower-priority
+ * tag defaults remain distinct until theme preparation; inline runs carry local overrides. Image
  * sources resolve only against the caller's named byte map, through {@link
  * com.nsdev.lettergenerator.internal.markup.HtmlImages}; markup never opens paths or URLs.
  * Dimensions become millimeters and font sizes become points. Link and full document validation

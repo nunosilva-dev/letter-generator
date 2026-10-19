@@ -1,12 +1,17 @@
 package com.nsdev.lettergenerator.internal.markup;
 
 import com.nsdev.lettergenerator.model.block.Block;
+import com.nsdev.lettergenerator.model.block.ComponentBlock;
+import com.nsdev.lettergenerator.model.block.GroupBlock;
 import com.nsdev.lettergenerator.model.block.Heading;
 import com.nsdev.lettergenerator.model.block.ListBlock;
 import com.nsdev.lettergenerator.model.block.PageBreakBlock;
 import com.nsdev.lettergenerator.model.block.Paragraph;
+import com.nsdev.lettergenerator.model.layout.Keep;
 import com.nsdev.lettergenerator.model.style.Style;
+import com.nsdev.lettergenerator.model.text.ListItem;
 import com.nsdev.lettergenerator.model.text.TextRun;
+import com.nsdev.lettergenerator.theme.LetterTheme;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +38,9 @@ public final class HtmlBlocks {
     /** Whether this traversal permits page breaks and body image defaults. */
     private final boolean body;
 
+    /** Final document theme needed to resolve rich table-cell image fitting geometry. */
+    private final LetterTheme theme;
+
     /**
      * Captures the inputs for one block traversal without retaining them beyond the call.
      *
@@ -40,12 +48,19 @@ public final class HtmlBlocks {
      * @param width available image width in millimeters
      * @param height available image height in millimeters
      * @param body whether this traversal reads body content
+     * @param theme optional final document theme
      */
-    private HtmlBlocks(Map<String, byte[]> assets, double width, double height, boolean body) {
+    private HtmlBlocks(
+            Map<String, byte[]> assets,
+            double width,
+            double height,
+            boolean body,
+            LetterTheme theme) {
         this.assets = assets;
         this.width = width;
         this.height = height;
         this.body = body;
+        this.theme = theme;
     }
 
     /**
@@ -62,12 +77,33 @@ public final class HtmlBlocks {
      */
     public static List<Block> fragment(
             String markup, Map<String, byte[]> assets, double width, double height, boolean body) {
-        return read(HtmlParser.body(markup), Style.plain(), assets, width, height, body);
+        return fragment(markup, assets, width, height, body, null);
+    }
+
+    /**
+     * Compiles a fragment using final themed table-cell geometry for image percentages.
+     *
+     * @param markup supported HTML fragment
+     * @param assets named encoded image bytes
+     * @param width available region width in millimeters
+     * @param height image fitting height basis in millimeters
+     * @param body whether explicit body page breaks are allowed
+     * @param theme optional final document theme
+     * @return immutable ordered blocks
+     */
+    public static List<Block> fragment(
+            String markup,
+            Map<String, byte[]> assets,
+            double width,
+            double height,
+            boolean body,
+            LetterTheme theme) {
+        return read(HtmlParser.body(markup), Style.plain(), assets, width, height, body, theme);
     }
 
     /**
      * Compiles a parsed region's children while preserving block order. Consecutive loose text and
-     * inline nodes become paragraphs; containers recurse, tables remain rectangular text tables,
+     * inline nodes become paragraphs; containers preserve style scopes, tables compile rich cells,
      * and images remain standalone blocks. This method reads but does not mutate nodes.
      *
      * @param parent non-null region/container whose children are compiled
@@ -87,7 +123,38 @@ public final class HtmlBlocks {
             double width,
             double height,
             boolean body) {
-        return new HtmlBlocks(assets, width, height, body).children(parent, inherited);
+        return read(parent, inherited, assets, width, height, body, null);
+    }
+
+    /**
+     * Compiles parsed children using the final document theme when fitting rich cell images.
+     *
+     * @param parent parsed region or container
+     * @param inherited nullable inherited typography
+     * @param assets named encoded image bytes
+     * @param width available width in millimeters
+     * @param height image fitting height basis in millimeters
+     * @param body whether explicit page breaks are allowed
+     * @param theme optional final document theme
+     * @return immutable ordered blocks
+     */
+    public static List<Block> read(
+            Element parent,
+            Style inherited,
+            Map<String, byte[]> assets,
+            double width,
+            double height,
+            boolean body,
+            LetterTheme theme) {
+        var reader = new HtmlBlocks(assets, width, height, body, theme);
+        List<Block> blocks = reader.children(parent, Style.plain());
+        return inherited == null || inherited.equals(Style.plain())
+                ? blocks
+                : List.of(
+                        new GroupBlock(
+                                blocks,
+                                inherited.overlay(
+                                        Style.builder().keepTogether(Keep.AUTO).build())));
     }
 
     /**
@@ -119,9 +186,21 @@ public final class HtmlBlocks {
                 textBlock(element, inherited, result);
             } else {
                 switch (tag) {
+                    case "canvas" ->
+                            result.add(HtmlLayouts.canvas(element, assets, width, height, theme));
+                    case "columns" ->
+                            result.add(HtmlLayouts.columns(element, assets, width, height, theme));
+                    case "box" ->
+                            result.add(
+                                    HtmlLayouts.box(element, assets, width, height, body, theme));
+                    case "group" -> {
+                        MarkupSupport.attributes(element);
+                        Style style = HtmlStyles.text(null, element);
+                        result.add(new GroupBlock(children(element, Style.plain()), style));
+                    }
                     case "div" -> {
                         MarkupSupport.attributes(element);
-                        Style style = HtmlStyles.text(inherited, element);
+                        Style style = HtmlStyles.text(null, element);
                         boolean hasBlocks =
                                 element.children().stream()
                                         .anyMatch(child -> !InlineReader.isInline(child));
@@ -130,11 +209,18 @@ public final class HtmlBlocks {
                                     style.spaceBeforeMm() == null && style.spaceAfterMm() == null,
                                     element,
                                     "Apply paragraph margins to the child text blocks");
-                            result.addAll(children(element, style));
+                            result.add(
+                                    new GroupBlock(
+                                            children(element, Style.plain()),
+                                            style.overlay(
+                                                    Style.builder()
+                                                            .keepTogether(Keep.AUTO)
+                                                            .build())));
                         } else {
                             result.add(
                                     new Paragraph(
-                                            InlineReader.read(element.childNodes(), style), style));
+                                            InlineReader.read(element.childNodes(), Style.plain()),
+                                            style));
                         }
                     }
                     case "img" ->
@@ -142,7 +228,20 @@ public final class HtmlBlocks {
                                     HtmlImages.read(
                                             element, assets, width, height, !body, inherited));
                     case "ul", "ol" -> result.add(list(element, inherited));
-                    case "table" -> result.add(HtmlTables.read(element, inherited));
+                    case "table" ->
+                            result.add(
+                                    HtmlTables.read(
+                                            element, inherited, assets, width, height, theme));
+                    case "component" -> {
+                        MarkupSupport.attributes(element, "ref");
+                        MarkupSupport.require(
+                                element.childNodes().isEmpty(), element, "component must be empty");
+                        MarkupSupport.require(
+                                element.hasAttr("ref"), element, "component requires ref");
+                        result.add(
+                                new ComponentBlock(
+                                        element.attr("ref"), HtmlStyles.text(null, element)));
+                    }
                     case "page-break" -> {
                         MarkupSupport.attributes(element);
                         MarkupSupport.require(
@@ -172,7 +271,7 @@ public final class HtmlBlocks {
      */
     private void textBlock(Element element, Style parent, List<Block> result) {
         MarkupSupport.attributes(element);
-        Style style = HtmlStyles.text(parent, element);
+        Style style = HtmlStyles.text(null, element);
         boolean onlyImages =
                 !element.children().isEmpty()
                         && element.children().stream()
@@ -190,16 +289,20 @@ public final class HtmlBlocks {
             }
             return;
         }
-        List<TextRun> runs = InlineReader.read(element.childNodes(), style);
+        List<TextRun> runs = InlineReader.read(element.childNodes(), Style.plain());
         result.add(
                 element.normalName().equals("p")
                         ? new Paragraph(runs, style)
-                        : new Heading(runs, style));
+                        : new Heading(
+                                runs,
+                                HtmlStyles.read(element).style(),
+                                HtmlStyles.semantic(element)));
     }
 
     /**
-     * Reads a nonempty flat list of li children. Each item is inline-only; list-level margins
-     * belong to the block, while item margins and nested block/list content are rejected.
+     * Reads nonempty li children containing inline runs followed by optional nested lists.
+     * List-level margins belong to the block; item margins and other block content are rejected.
+     * Flat markup retains the original flat-item model representation.
      *
      * @param element parsed element being read and used for diagnostics
      * @param parent parent text style, or null
@@ -207,8 +310,10 @@ public final class HtmlBlocks {
      */
     private ListBlock list(Element element, Style parent) {
         MarkupSupport.attributes(element);
-        Style style = HtmlStyles.text(parent, element);
+        Style style = HtmlStyles.inherited(parent).overlay(HtmlStyles.text(null, element));
         var items = new ArrayList<List<TextRun>>();
+        var contentItems = new ArrayList<ListItem>();
+        boolean nested = false;
         for (Node node : element.childNodes()) {
             if (node instanceof Comment || node instanceof TextNode text && text.isBlank()) {
                 continue;
@@ -219,15 +324,41 @@ public final class HtmlBlocks {
                     "Lists require li children");
             Element item = (Element) node;
             MarkupSupport.attributes(item);
-            Style itemStyle = HtmlStyles.text(style, item);
+            Style itemStyle = HtmlStyles.text(null, item);
             MarkupSupport.require(
                     itemStyle.spaceBeforeMm() == null && itemStyle.spaceAfterMm() == null,
                     item,
                     "List item margins are unsupported; style the list instead");
-            items.add(InlineReader.read(item.childNodes(), itemStyle));
+            var inline = new ArrayList<Node>();
+            var children = new ArrayList<ListBlock>();
+            boolean childListsStarted = false;
+            for (Node child : item.childNodes()) {
+                if (child instanceof Element childList
+                        && Set.of("ul", "ol").contains(childList.normalName())) {
+                    children.add(list(childList, itemStyle));
+                    childListsStarted = true;
+                    nested = true;
+                } else {
+                    boolean indentation =
+                            child instanceof Comment
+                                    || child instanceof TextNode text && text.isBlank();
+                    MarkupSupport.require(
+                            !childListsStarted || indentation,
+                            child,
+                            "List item inline content must precede nested lists");
+                    if (!childListsStarted) {
+                        inline.add(child);
+                    }
+                }
+            }
+            var runs = InlineReader.read(inline, itemStyle);
+            items.add(runs);
+            contentItems.add(new ListItem(runs, children));
         }
         MarkupSupport.require(!items.isEmpty(), element, "List requires at least one item");
-        return new ListBlock(items, element.normalName().equals("ol"), style);
+        return nested
+                ? ListBlock.nested(contentItems, element.normalName().equals("ol"), style)
+                : new ListBlock(items, element.normalName().equals("ol"), style);
     }
 
     /**
@@ -243,10 +374,7 @@ public final class HtmlBlocks {
                 pending.stream()
                         .anyMatch(node -> !(node instanceof TextNode text) || !text.isBlank());
         if (hasContent) {
-            output.add(
-                    new Paragraph(
-                            InlineReader.read(pending, inherited),
-                            HtmlStyles.inherited(inherited)));
+            output.add(new Paragraph(InlineReader.read(pending, Style.plain()), Style.plain()));
         }
         pending.clear();
     }

@@ -21,10 +21,10 @@ public final class HtmlImages {
     private HtmlImages() {}
 
     /**
-     * Resolves only {@code asset:name} sources and fits PNG/JPEG bytes without changing aspect
-     * ratio. CSS dimensions override width/height attributes. Percentages use the supplied region
-     * dimensions; unitless image dimensions are pixels at 96 dpi. Body defaults are bounded by 60
-     * by 40 mm; repeated-region defaults use the available box. With width alone, height is
+     * Resolves only {@code asset:name} sources and fits PNG/JPEG/static SVG bytes without changing
+     * aspect ratio. CSS dimensions override width/height attributes. Percentages use the supplied
+     * region dimensions; unitless image dimensions are pixels at 96 dpi. Body defaults are bounded
+     * by 60 by 40 mm; repeated-region defaults use the available box. With width alone, height is
      * unconstrained during fitting. Explicit height may exceed availableHeight; downstream document
      * geometry validation remains responsible for the complete result.
      *
@@ -36,7 +36,7 @@ public final class HtmlImages {
      * @param inherited inherited text/alignment style, or null
      * @return fitted image with a defensive byte snapshot and overlaid appearance style
      * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if source, CSS, size,
-     *     asset lookup or PNG/JPEG decoding is invalid
+     *     asset lookup or PNG/JPEG/static SVG decoding is invalid
      */
     public static ImageBlock read(
             Element element,
@@ -82,7 +82,8 @@ public final class HtmlImages {
                     image.mimeType(),
                     image.widthMm(),
                     image.heightMm(),
-                    HtmlStyles.inherited(inherited).overlay(appearance.style()));
+                    HtmlStyles.inherited(inherited).overlay(appearance.style()),
+                    element.hasAttr("alt") ? element.attr("alt") : null);
         } catch (IllegalArgumentException exception) {
             throw MarkupSupport.error(
                     element, "Invalid image asset " + source + ": " + exception.getMessage());

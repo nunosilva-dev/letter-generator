@@ -1,5 +1,8 @@
 package com.nsdev.lettergenerator.internal.render.fop;
 
+import com.nsdev.lettergenerator.diagnostics.Diagnostic;
+import com.nsdev.lettergenerator.diagnostics.DiagnosticPhase;
+import com.nsdev.lettergenerator.diagnostics.DiagnosticSeverity;
 import com.nsdev.lettergenerator.exception.PdfGenerationException;
 import com.nsdev.lettergenerator.internal.render.fo.PageMaster;
 import java.util.List;
@@ -67,7 +70,20 @@ public record FopRenderResult(
             String message =
                     problems.stream().map(RenderProblem::message).collect(Collectors.joining("; "));
             throw new PdfGenerationException(
-                    "FOP rejected the layout: " + message, new IllegalStateException(message));
+                    "FOP rejected the layout: " + message,
+                    new IllegalStateException(message),
+                    problems.stream()
+                            .map(
+                                    problem ->
+                                            new Diagnostic(
+                                                    problem.bodyOverflow()
+                                                            ? "BODY_OVERFLOW"
+                                                            : "LAYOUT_ERROR",
+                                                    DiagnosticSeverity.ERROR,
+                                                    DiagnosticPhase.LAYOUT,
+                                                    "layout",
+                                                    problem.message()))
+                            .toList());
         }
     }
 }

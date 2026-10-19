@@ -12,14 +12,26 @@ import java.util.List;
  *
  * @param runs ordered styled text; null is preserved for generation-time validation
  * @param style optional block overrides, layered after document and section styles
+ * @param semanticStyle optional tag defaults, below theme and explicit local overrides
  */
-public record Heading(List<TextRun> runs, Style style) implements Block {
+public record Heading(List<TextRun> runs, Style style, Style semanticStyle) implements Block {
+    /**
+     * Creates an ordinary heading without additional markup-tag defaults.
+     *
+     * @param runs ordered inline content
+     * @param style nullable explicit overrides
+     */
+    public Heading(List<TextRun> runs, Style style) {
+        this(runs, style, null);
+    }
+
     /**
      * Snapshots the run list without validating text or style. Null lists and entries are preserved
      * for generation-time diagnostics.
      *
      * @param runs runs to copy into an unmodifiable list, or null
      * @param style nullable style overrides
+     * @param semanticStyle nullable tag defaults
      */
     public Heading {
         runs = ImmutableLists.copyNullable(runs);

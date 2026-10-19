@@ -15,6 +15,12 @@ final class HeaderTagHandler implements TemplateTagHandler {
         return "header";
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public String regionKey(Element element) {
+        return tagName() + ":" + TemplateAttributes.pages(element);
+    }
+
     /**
      * Applies alignment and optional dimensions/bounds before storing header markup for deferred
      * builder compilation. Any x/y placement requires all four millimeter coordinates/dimensions;
@@ -24,7 +30,8 @@ final class HeaderTagHandler implements TemplateTagHandler {
     public void handle(Element element, TemplateContext context) {
         LetterBuilder builder = context.builder();
         Style defaults = context.page().defaults();
-        MarkupSupport.attributes(element, "align", "width-mm", "height-mm", "x-mm", "y-mm");
+        MarkupSupport.attributes(
+                element, "align", "width-mm", "height-mm", "x-mm", "y-mm", "pages");
         Style inherited = defaults;
         if (element.hasAttr("align")) {
             TextAlign alignment;
@@ -68,7 +75,8 @@ final class HeaderTagHandler implements TemplateTagHandler {
                 builder.headerHeightMm(number(element, "height-mm"));
             }
         }
-        builder.headerStyle(style).headerHtml(element.html());
+        var pages = TemplateAttributes.pages(element);
+        builder.headerStyle(pages, style).headerHtml(pages, element.html());
     }
 
     /**

@@ -2,7 +2,11 @@ package com.nsdev.lettergenerator.internal.template;
 
 import com.nsdev.lettergenerator.internal.markup.HtmlParser;
 import com.nsdev.lettergenerator.internal.markup.MarkupSupport;
+import com.nsdev.lettergenerator.localization.LocaleSettings;
+import com.nsdev.lettergenerator.model.DocumentSettings;
 import com.nsdev.lettergenerator.model.LetterDocument;
+import com.nsdev.lettergenerator.template.TemplateRequirements;
+import com.nsdev.lettergenerator.theme.LetterTheme;
 import java.util.Map;
 import org.jsoup.nodes.Comment;
 import org.jsoup.nodes.Element;
@@ -28,7 +32,8 @@ public final class TemplateCompiler {
      * resolves deferred header geometry and assembles the document.
      *
      * @param source non-null HTML fragment containing exactly one letter element
-     * @param values scalar strings used for map-only substitution; consulted only when enabled
+     * @param values typed values used for map-only binding and finite directives; consulted only
+     *     when enabled
      * @param assets non-null named image byte map without null keys/values; builder copies bytes
      * @param substitute whether to resolve placeholders in parsed text and attribute values
      * @return compiled immutable model, before the generator's shared semantic validation pass
@@ -38,19 +43,115 @@ public final class TemplateCompiler {
      *     region structure or supported markup rules fail
      */
     public static LetterDocument compile(
+            String source, Map<String, ?> values, Map<String, byte[]> assets, boolean substitute) {
+        return compile(source, values, assets, substitute, null);
+    }
+
+    /**
+     * Compiles with role defaults known before builder fallbacks are applied.
+     *
+     * @param source supported markup
+     * @param values typed map-only bindings
+     * @param assets named image bytes
+     * @param substitute whether replacements are enabled
+     * @param theme optional document theme
+     * @return immutable unresolved composition model
+     */
+    public static LetterDocument compile(
             String source,
-            Map<String, String> values,
+            Map<String, ?> values,
             Map<String, byte[]> assets,
-            boolean substitute) {
-        Element root = root(source);
+            boolean substitute,
+            LetterTheme theme) {
+        return compile(prepare(source), values, assets, substitute, theme, null);
+    }
+
+    /**
+     * Parses once into an opaque owned prototype for repeated safe binding.
+     *
+     * @param source supported source
+     * @return immutable prototype handle
+     */
+    public static Prototype prepare(String source) {
+        return new Prototype(root(source));
+    }
+
+    /**
+     * Clones a prototype and compiles one independent binding.
+     *
+     * @param prototype owned parsed source
+     * @param values owned typed values
+     * @param assets named assets
+     * @param substitute whether directives/substitution are enabled
+     * @param theme optional theme
+     * @param settings optional explicit document settings
+     * @return fresh immutable model
+     */
+    public static LetterDocument compile(
+            Prototype prototype,
+            Map<String, ?> values,
+            Map<String, byte[]> assets,
+            boolean substitute,
+            LetterTheme theme,
+            DocumentSettings settings) {
+        Element root = prototype.copy();
+        LocaleSettings locale =
+                TemplatePage.locale(root, settings == null ? null : settings.locale());
         if (substitute) {
-            new TemplateBindings(values).apply(root);
+            var wrapper = new Element("body").appendChild(root);
+            new TemplateBindings(values, locale).apply(root);
+            MarkupSupport.require(
+                    root.parent() == wrapper,
+                    root,
+                    "Template conditions removed the required letter root");
         }
         TemplatePage page = TemplatePage.read(root);
         var builder = page.builder();
+        if (settings != null) {
+            builder.settings(settings);
+        }
+        if (settings != null || TemplatePage.hasLocale(root)) {
+            builder.locale(locale);
+        }
+        if (theme != null) {
+            builder.theme(theme);
+        }
         assets.forEach(builder::asset);
-        TAGS.apply(root, new TemplateContext(builder, page, assets));
+        TAGS.apply(root, new TemplateContext(builder, page, assets, theme));
         return builder.build();
+    }
+
+    /** Opaque parsed prototype; callers can obtain only owned clones and immutable manifests. */
+    public static final class Prototype {
+        /** Never mutated after capture. */
+        private final Element root;
+
+        /** Owned immutable requirement manifest. */
+        private final TemplateRequirements requirements;
+
+        /**
+         * Captures the already-owned root.
+         *
+         * @param root parsed source
+         */
+        private Prototype(Element root) {
+            this.root = root;
+            requirements = TemplateManifest.read(root);
+        }
+
+        /**
+         * @return fresh mutable parsed clone owned by the caller
+         */
+        public Element copy() {
+            return root.clone();
+        }
+
+        /**
+         * @return immutable syntactic input contract
+         */
+        public TemplateRequirements requirements() {
+            return requirements;
+        }
     }
 
     /**

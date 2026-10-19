@@ -82,6 +82,27 @@ public final class XmlBuilder {
     }
 
     /**
+     * Opens a trusted extension element with an explicit namespace declaration. Element names and
+     * namespace identifiers are renderer constants; user data belongs in escaped attributes/text.
+     * This method performs no resource lookup for the namespace identifier.
+     *
+     * @param elementPrefix trusted namespace prefix
+     * @param name trusted local element name
+     * @param elementNamespace trusted extension namespace identifier
+     * @return this writer
+     * @throws PdfGenerationException if the extension element cannot be serialized
+     */
+    public XmlBuilder start(String elementPrefix, String name, String elementNamespace) {
+        write(
+                () -> {
+                    writer.writeStartElement(elementPrefix, name, elementNamespace);
+                    writer.writeNamespace(elementPrefix, elementNamespace);
+                    rootWritten = true;
+                });
+        return this;
+    }
+
+    /**
      * Writes an escaped attribute on the current open start tag.
      *
      * @param name trusted attribute name

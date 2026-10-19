@@ -2,8 +2,13 @@ package com.nsdev.lettergenerator.builder;
 
 import com.nsdev.lettergenerator.internal.util.ArgumentChecks;
 import com.nsdev.lettergenerator.model.block.TableBlock;
+import com.nsdev.lettergenerator.model.layout.Keep;
 import com.nsdev.lettergenerator.model.style.Style;
+import com.nsdev.lettergenerator.model.table.CellAppearance;
 import com.nsdev.lettergenerator.model.table.TableCell;
+import com.nsdev.lettergenerator.model.table.TableOptions;
+import com.nsdev.lettergenerator.model.table.TableRowGroup;
+import com.nsdev.lettergenerator.model.table.TableRowPolicy;
 import com.nsdev.lettergenerator.model.text.TextRun;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,11 +16,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Mutable text-table builder with a fixed column count and ordered, appended rows. Obtain one from
+ * Mutable table builder with a fixed column count and ordered, appended rows. Obtain one from
  * {@link com.nsdev.lettergenerator.Table#builder(String...)} or its constructor. Columns start with
- * equal relative weights; header cells default to bold white text on {@code #10384A}. Configuration
- * calls replace their option, and {@link #build()} takes an independent immutable snapshot for a
- * letter's body.
+ * equal relative weights; string header cells default to bold white text on {@code #10384A}.
+ * Configuration calls replace their option, and {@link #build()} takes an independent immutable
+ * snapshot for a letter's body.
  */
 public final class TableBuilder {
     /** Six-digit RGB fill applied to each header cell unless replaced. */
@@ -31,6 +36,12 @@ public final class TableBuilder {
     /** Appended data rows retained until each immutable table snapshot is built. */
     private final List<List<TableCell>> rows = new ArrayList<>();
 
+    /** Explicitly supplied typed header, or null to derive the original string header. */
+    private List<TableCell> typedHeader;
+
+    /** Optional cell defaults and body-row controls, replaced immutably by configuration calls. */
+    private TableOptions options;
+
     /** Current immutable relative column weights, initially equal for every column. */
     private List<Double> weights;
 
@@ -38,10 +49,10 @@ public final class TableBuilder {
     private Style style;
 
     /** Current header overrides composed over the bold white defaults. */
-    private Style headerStyle = DEFAULT_HEADER_STYLE;
+    private Style headerStyle = Style.plain();
 
     /** Current header-cell RGB fill; full syntax validation happens during generation. */
-    private String headerBackground = DEFAULT_HEADER_BACKGROUND;
+    private String headerBackground;
 
     /**
      * Creates a table whose header array fixes the number of columns. Header strings are
@@ -77,6 +88,142 @@ public final class TableBuilder {
                 Arrays.stream(values)
                         .map(value -> cell(ArgumentChecks.required(value, "cell text"), null, null))
                         .toList());
+        return this;
+    }
+
+    /**
+     * Appends a typed row, allowing spans and block content. An empty row is useful when earlier
+     * row spans cover every column. Complete grid validation occurs during generation.
+     *
+     * @param cells nonnull ordered row cells
+     * @return this builder
+     * @throws IllegalArgumentException if the list or a cell is null
+     */
+    public TableBuilder row(List<TableCell> cells) {
+        ArgumentChecks.required(cells, "table cells");
+        for (TableCell cell : cells) {
+            ArgumentChecks.required(cell, "table cell");
+        }
+        rows.add(List.copyOf(cells));
+        return this;
+    }
+
+    /**
+     * Appends typed cells through an explicit varargs entry point, including a fully spanned empty
+     * row. Grid shape and content values are checked during generation.
+     *
+     * @param cells nonnull array of nonnull cells
+     * @return this builder
+     * @throws IllegalArgumentException if the array or any cell is null
+     */
+    public TableBuilder rowCells(TableCell... cells) {
+        ArgumentChecks.required(cells, "table cells");
+        return row(Arrays.asList(cells));
+    }
+
+    /**
+     * Replaces the repeating header with typed cells; an empty array removes the header. Typed
+     * headers use their own typography and appearance instead of the string-header defaults.
+     *
+     * @param cells nonnull array of nonnull header cells
+     * @return this builder
+     * @throws IllegalArgumentException if the array or any cell is null
+     */
+    public TableBuilder headerCells(TableCell... cells) {
+        ArgumentChecks.required(cells, "header cells");
+        for (TableCell cell : cells) {
+            ArgumentChecks.required(cell, "header cell");
+        }
+        typedHeader = List.copyOf(Arrays.asList(cells));
+        return this;
+    }
+
+    /**
+     * Replaces cell appearance defaults while retaining configured row policies.
+     *
+     * @param value nonnull defaults independently inherited by each cell
+     * @return this builder
+     * @throws IllegalArgumentException if value is null
+     */
+    public TableBuilder cellAppearance(CellAppearance value) {
+        options =
+                new TableOptions(
+                        ArgumentChecks.required(value, "cell appearance"),
+                        options == null ? null : options.rowKeepTogether(),
+                        options == null ? null : options.rowPolicies(),
+                        options == null ? null : options.rowGroups());
+        return this;
+    }
+
+    /**
+     * Sets the default row split control; AUTO permits normal splits, PREFER is the legacy soft
+     * keep, and ALWAYS strongly requests intact rows.
+     *
+     * @param value nonnull default row keep
+     * @return this builder
+     * @throws IllegalArgumentException if value is null
+     */
+    public TableBuilder rowKeepTogether(Keep value) {
+        options =
+                new TableOptions(
+                        options == null ? null : options.cellAppearance(),
+                        ArgumentChecks.required(value, "row keep"),
+                        options == null ? null : options.rowPolicies(),
+                        options == null ? null : options.rowGroups());
+        return this;
+    }
+
+    /**
+     * Appends an explicit body-row override. Duplicate or out-of-range indices fail during
+     * generation, after all rows have been appended.
+     *
+     * @param value nonnull indexed row policy
+     * @return this builder
+     * @throws IllegalArgumentException if value is null
+     */
+    public TableBuilder rowPolicy(TableRowPolicy value) {
+        var policies =
+                new ArrayList<TableRowPolicy>(options == null ? List.of() : options.rowPolicies());
+        policies.add(ArgumentChecks.required(value, "row policy"));
+        options =
+                new TableOptions(
+                        options == null ? null : options.cellAppearance(),
+                        options == null ? null : options.rowKeepTogether(),
+                        policies,
+                        options == null ? null : options.rowGroups());
+        return this;
+    }
+
+    /**
+     * Appends a consecutive body-row group. Groups must be disjoint and within the completed table;
+     * their keep strength also applies between member rows.
+     *
+     * @param value nonnull row group
+     * @return this builder
+     * @throws IllegalArgumentException if value is null
+     */
+    public TableBuilder rowGroup(TableRowGroup value) {
+        var groups =
+                new ArrayList<TableRowGroup>(options == null ? List.of() : options.rowGroups());
+        groups.add(ArgumentChecks.required(value, "row group"));
+        options =
+                new TableOptions(
+                        options == null ? null : options.cellAppearance(),
+                        options == null ? null : options.rowKeepTogether(),
+                        options == null ? null : options.rowPolicies(),
+                        groups);
+        return this;
+    }
+
+    /**
+     * Replaces all cell defaults and row metadata with one immutable options value.
+     *
+     * @param value nonnull complete table options
+     * @return this builder
+     * @throws IllegalArgumentException if value is null
+     */
+    public TableBuilder options(TableOptions value) {
+        options = ArgumentChecks.required(value, "table options");
         return this;
     }
 
@@ -127,7 +274,7 @@ public final class TableBuilder {
      * @throws IllegalArgumentException if {@code value} is null
      */
     public TableBuilder headerStyle(Style value) {
-        headerStyle = DEFAULT_HEADER_STYLE.overlay(ArgumentChecks.required(value, "header style"));
+        headerStyle = ArgumentChecks.required(value, "header style");
         return this;
     }
 
@@ -157,9 +304,30 @@ public final class TableBuilder {
         }
         return new TableBlock(
                 weights,
-                headers.stream().map(value -> cell(value, headerStyle, headerBackground)).toList(),
+                typedHeader == null ? headers.stream().map(this::headerCell).toList() : typedHeader,
                 rows,
-                style);
+                style,
+                options);
+    }
+
+    /**
+     * Retains string-header defaults as semantics below theme roles and explicit header overrides.
+     *
+     * @param text validated header text
+     * @return immutable header cell
+     */
+    private TableCell headerCell(String text) {
+        return new TableCell(
+                List.of(new TextRun(text, null, null)),
+                headerStyle,
+                headerBackground,
+                null,
+                null,
+                null,
+                null,
+                DEFAULT_HEADER_STYLE,
+                new com.nsdev.lettergenerator.model.table.CellAppearance(
+                        null, null, null, DEFAULT_HEADER_BACKGROUND));
     }
 
     /**

@@ -3,9 +3,10 @@
  * {@link com.nsdev.lettergenerator.Letter} or {@link com.nsdev.lettergenerator.Table}. Use {@link
  * com.nsdev.lettergenerator.builder.LetterBuilder} for ordered Java content, {@link
  * com.nsdev.lettergenerator.builder.HtmlLetterBuilder} for supported letter markup, and {@link
- * com.nsdev.lettergenerator.builder.TableBuilder} for text tables. Build snapshots before passing
- * them to {@link com.nsdev.lettergenerator.LetterPdfGenerator}; font and complete document
- * validation belong to generation.
+ * com.nsdev.lettergenerator.builder.TableBuilder} for native text and rich-cell tables. Build
+ * snapshots before passing them to {@link com.nsdev.lettergenerator.LetterPdfGenerator}; font and
+ * complete document validation belong to generation. HTML builders also expose input inspection
+ * without PDF layout.
  *
  * <p>Deferred Java/HTML region content is resolved by {@link
  * com.nsdev.lettergenerator.internal.builder.content} against the builder's final settings.

@@ -9,10 +9,10 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Immutable PNG/JPEG signature part owning a defensive copy of its image bytes. Factories decode
- * the image immediately and preserve its aspect ratio within a 40 by 20 mm box. {@link
- * #sizeMm(double, double)} creates another fitted part without mutating this one. Placement within
- * the letter is configured on the letter builder.
+ * Immutable PNG/JPEG/static SVG signature part owning a defensive copy of its image bytes.
+ * Factories decode the image immediately and preserve its aspect ratio within a 40 by 20 mm box.
+ * {@link #sizeMm(double, double)} creates another fitted part without mutating this one. Placement
+ * within the letter is configured on the letter builder.
  */
 public final class ImageSignature implements SignatureContent {
     /** Maximum width in millimeters for the initial signature image fit. */
@@ -37,9 +37,9 @@ public final class ImageSignature implements SignatureContent {
      * Copies and decodes image bytes, fitting the aspect ratio inside a 40 by 20 mm box. The fit
      * can enlarge a small source image as well as reduce a large one.
      *
-     * @param data non-null readable PNG or JPEG image bytes
+     * @param data non-null readable PNG, JPEG or static SVG image bytes
      * @return a new immutable image signature
-     * @throws IllegalArgumentException if bytes are null, unreadable, or not PNG/JPEG
+     * @throws IllegalArgumentException if bytes are null, unreadable, or not PNG/JPEG/static SVG
      */
     public static ImageSignature of(byte[] data) {
         return new ImageSignature(ImageBlocks.fit(data, DEFAULT_WIDTH_MM, DEFAULT_HEIGHT_MM));
@@ -49,11 +49,12 @@ public final class ImageSignature implements SignatureContent {
      * Reads and decodes an image immediately, fitting it inside a 40 by 20 mm box. The resulting
      * signature no longer depends on the file.
      *
-     * @param path non-null PNG or JPEG file path
+     * @param path non-null PNG, JPEG or static SVG file path
      * @return a new immutable image signature
      * @throws IOException if the file cannot be read
      * @throws NullPointerException if {@code path} is null
-     * @throws IllegalArgumentException if file bytes are not a readable PNG or JPEG image
+     * @throws IllegalArgumentException if file bytes are not a readable PNG, JPEG or static SVG
+     *     image
      */
     public static ImageSignature of(Path path) throws IOException {
         return of(Files.readAllBytes(path));

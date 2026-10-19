@@ -1,6 +1,7 @@
 package com.nsdev.lettergenerator.internal.markup;
 
 import com.nsdev.lettergenerator.model.style.Style;
+import com.nsdev.lettergenerator.model.text.PageNumber;
 import com.nsdev.lettergenerator.model.text.TextRun;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,7 @@ import org.jsoup.nodes.TextNode;
 final class InlineReader {
     /** Finite inline vocabulary accepted inside paragraphs and table cells. */
     private static final Set<String> TAGS =
-            Set.of("span", "strong", "b", "em", "i", "u", "a", "br");
+            Set.of("span", "strong", "b", "em", "i", "u", "a", "br", "page-number", "page-count");
 
     /**
      * HTML whitespace collapsed to a single space without treating nonbreaking spaces as blanks.
@@ -100,7 +101,19 @@ final class InlineReader {
                 style.spaceBeforeMm() == null && style.spaceAfterMm() == null,
                 element,
                 "Inline elements cannot have block margins; style the containing text block");
-        if (element.normalName().equals("br")) {
+        if (element.normalName().equals("page-number")
+                || element.normalName().equals("page-count")) {
+            MarkupSupport.require(
+                    element.childNodes().isEmpty(), element, "Page fields must be empty");
+            output.add(
+                    new TextRun(
+                            "",
+                            style,
+                            href,
+                            element.normalName().equals("page-number")
+                                    ? PageNumber.CURRENT
+                                    : PageNumber.TOTAL));
+        } else if (element.normalName().equals("br")) {
             output.add(new TextRun("\n", style, href));
         } else {
             for (Node child : element.childNodes()) {

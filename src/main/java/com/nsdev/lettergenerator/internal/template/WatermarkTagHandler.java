@@ -39,6 +39,8 @@ final class WatermarkTagHandler implements TemplateTagHandler {
      */
     private static Watermark read(Element element, TemplateContext context) {
         MarkupSupport.attributes(element, "opacity", "rotation", "pages");
+        MarkupSupport.require(
+                !element.hasAttr("style-name"), element, "Watermark styles must be explicit");
         TextWatermark preset = TextWatermark.of(element.text());
         double opacity = TemplateAttributes.number(element, "opacity", preset.opacity());
         double rotation =

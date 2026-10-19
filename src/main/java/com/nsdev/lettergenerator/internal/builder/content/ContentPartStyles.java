@@ -1,8 +1,14 @@
 package com.nsdev.lettergenerator.internal.builder.content;
 
 import com.nsdev.lettergenerator.model.block.Block;
+import com.nsdev.lettergenerator.model.block.BoxBlock;
+import com.nsdev.lettergenerator.model.block.CanvasBlock;
+import com.nsdev.lettergenerator.model.block.ColumnsBlock;
+import com.nsdev.lettergenerator.model.block.ComponentBlock;
+import com.nsdev.lettergenerator.model.block.GroupBlock;
 import com.nsdev.lettergenerator.model.block.Heading;
 import com.nsdev.lettergenerator.model.block.ImageBlock;
+import com.nsdev.lettergenerator.model.block.LetterPartBlock;
 import com.nsdev.lettergenerator.model.block.ListBlock;
 import com.nsdev.lettergenerator.model.block.Paragraph;
 import com.nsdev.lettergenerator.model.block.TableBlock;
@@ -26,21 +32,44 @@ final class ContentPartStyles {
             return block;
         }
         Style style = defaults.overlay(block.style());
+        if (block instanceof CanvasBlock canvas) {
+            return new CanvasBlock(canvas.widthMm(), canvas.heightMm(), canvas.elements(), style);
+        }
+        if (block instanceof ColumnsBlock columns) {
+            return new ColumnsBlock(columns.columns(), columns.gapMm(), style);
+        }
+        if (block instanceof BoxBlock box) {
+            return new BoxBlock(box.blocks(), box.appearance(), style);
+        }
+        if (block instanceof LetterPartBlock part) {
+            return new LetterPartBlock(part.element(), part.blocks(), style);
+        }
+        if (block instanceof GroupBlock group) {
+            return new GroupBlock(group.blocks(), style, group.defaultStyle());
+        }
+        if (block instanceof ComponentBlock reference) {
+            return new ComponentBlock(reference.name(), style);
+        }
         if (block instanceof Paragraph paragraph) {
             return new Paragraph(paragraph.runs(), style);
         }
         if (block instanceof Heading heading) {
-            return new Heading(heading.runs(), style);
+            return new Heading(heading.runs(), style, heading.semanticStyle());
         }
         if (block instanceof ImageBlock image) {
             return new ImageBlock(
-                    image.data(), image.mimeType(), image.widthMm(), image.heightMm(), style);
+                    image.data(),
+                    image.mimeType(),
+                    image.widthMm(),
+                    image.heightMm(),
+                    style,
+                    image.altText());
         }
         if (block instanceof TableBlock table) {
-            return new TableBlock(table.columnWeights(), table.header(), table.rows(), style);
+            return table.withStyle(style);
         }
         if (block instanceof ListBlock list) {
-            return new ListBlock(list.items(), list.ordered(), style);
+            return new ListBlock(list.items(), list.ordered(), style, list.contentItems());
         }
         return block;
     }

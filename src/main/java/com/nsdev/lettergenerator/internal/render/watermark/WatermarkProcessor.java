@@ -1,6 +1,8 @@
 package com.nsdev.lettergenerator.internal.render.watermark;
 
 import com.nsdev.lettergenerator.exception.PdfGenerationException;
+import com.nsdev.lettergenerator.internal.content.ImageFormat;
+import com.nsdev.lettergenerator.internal.content.SvgRasterizer;
 import com.nsdev.lettergenerator.internal.font.FontRegistry;
 import com.nsdev.lettergenerator.internal.font.RegisteredFont;
 import com.nsdev.lettergenerator.internal.font.StandardFontFamilies;
@@ -84,8 +86,11 @@ public final class WatermarkProcessor {
             return stream -> paintText(stream, text, font);
         }
         ImageWatermark image = (ImageWatermark) watermark;
-        PDImageXObject bitmap =
-                PDImageXObject.createFromByteArray(pdf, image.data(), WATERMARK_IMAGE_NAME);
+        byte[] data = image.data();
+        if (ImageFormat.SVG.mimeType().equals(image.mimeType())) {
+            data = SvgRasterizer.png(data, image.widthMm(), image.heightMm());
+        }
+        PDImageXObject bitmap = PDImageXObject.createFromByteArray(pdf, data, WATERMARK_IMAGE_NAME);
         return stream -> paintImage(stream, image, bitmap);
     }
 

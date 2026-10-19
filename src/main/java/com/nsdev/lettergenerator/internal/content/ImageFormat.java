@@ -8,7 +8,10 @@ public enum ImageFormat {
     PNG("png", "image/png", new byte[] {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}),
 
     /** JPEG with the start-of-image and following marker prefix. */
-    JPEG("jpeg", "image/jpeg", new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF});
+    JPEG("jpeg", "image/jpeg", new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF}),
+
+    /** Static SVG checked by the secure parser rather than a fixed binary prefix. */
+    SVG("svg", "image/svg+xml", new byte[0]);
 
     /** Lowercase format name reported by an ImageIO reader. */
     private final String readerName;
@@ -79,6 +82,14 @@ public enum ImageFormat {
      * @throws NullPointerException if data is null
      */
     public boolean matchesSignature(byte[] data) {
+        if (this == SVG) {
+            try {
+                SvgImages.inspect(data);
+                return true;
+            } catch (IllegalArgumentException exception) {
+                return false;
+            }
+        }
         return data.length >= signature.length
                 && Arrays.equals(data, 0, signature.length, signature, 0, signature.length);
     }

@@ -1,8 +1,11 @@
 /**
- * Text-only table cell content and appearance. Cells belong to {@link
- * com.nsdev.lettergenerator.model.block.TableBlock} rows and inherit table text styling before
- * applying cell and run overrides. Optional backgrounds use {@code #RRGGBB}; omitted backgrounds
- * are transparent. Each cell's runs are snapshotted, while row dimensions and content are checked
- * during generation.
+ * Immutable cell content, appearance and body-row page policies for native tables. A cell contains
+ * either compact inline runs or blocks; explicit empty block lists create visual empty cells.
+ * Positive column/row spans must completely cover independent header/body grids without overlap.
+ * Rich cell blocks support paragraphs, headings, lists and images, but no nested tables or page
+ * breaks. Table defaults inherit independently into local cell appearance; legacy explicit cell
+ * backgroundColor overrides both. Border widths use points and padding uses millimeters. Omitted
+ * options preserve white quarter-point separators, one-millimeter padding, vertically centered
+ * content and soft row keeps. Row groups refer to disjoint zero-based body-row ranges.
  */
 package com.nsdev.lettergenerator.model.table;

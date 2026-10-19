@@ -6,9 +6,9 @@ import java.util.List;
 /**
  * Immutable visual signature content accepted by {@link
  * com.nsdev.lettergenerator.builder.LetterBuilder#signature(SignatureContent...)}. Create text with
- * {@link TextSignature#of(String)} and PNG/JPEG artwork with {@link ImageSignature#of(byte[])}. The
- * letter builder stacks parts in argument order; placement and reserved height are configured on
- * the builder separately.
+ * {@link TextSignature#of(String)} and PNG/JPEG/static SVG artwork with {@link
+ * ImageSignature#of(byte[])}. The letter builder stacks parts in argument order; placement and
+ * reserved height are configured on the builder separately.
  */
 public sealed interface SignatureContent permits TextSignature, ImageSignature {
     /**

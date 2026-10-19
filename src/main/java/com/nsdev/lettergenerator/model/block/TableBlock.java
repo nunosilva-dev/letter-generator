@@ -3,36 +3,36 @@ package com.nsdev.lettergenerator.model.block;
 import com.nsdev.lettergenerator.internal.util.ImmutableLists;
 import com.nsdev.lettergenerator.model.style.Style;
 import com.nsdev.lettergenerator.model.table.TableCell;
+import com.nsdev.lettergenerator.model.table.TableOptions;
 import java.util.List;
 
 /**
- * Full-width text table with proportional column widths, an optional repeating header, and one or
- * more body rows. A column's fraction of the available width is its weight divided by the sum of
- * all weights; weights are not millimeter dimensions. Rows stay together when possible, while a
- * body table can continue across pages and repeat its header.
+ * Full-width native table with positive proportional column weights, an optional repeating header
+ * and ordered body rows. Cells can span columns/rows; each section must cover its complete grid
+ * without holes or overlap, and header spans cannot enter the body. Cell text inherits table, cell
+ * and run styles in that order. Rich cells also support ordinary paragraphs, lists and images.
  *
- * <p>Generation requires positive finite weights with a finite sum, at least one column and body
- * row, and exactly one nonnull cell per column in each header/body row. Text styles inherit from
- * the table, then the cell, then the run. Cell paragraph spacing is forced to zero; table spacing
- * controls the space around the table.
- *
- * @param columnWeights relative positive column weights, one per column
- * @param header optional header cells; null becomes an empty list
- * @param rows ordered body rows; null outer/inner lists are retained for validation
- * @param style nullable table overrides, inherited by cell text
+ * @param columnWeights positive relative weights, one per physical column
+ * @param header optional single repeating header row, null becomes empty
+ * @param rows ordered body rows containing cells at their first unoccupied column
+ * @param style nullable table typography and spacing
+ * @param options optional appearance and row policies; null preserves legacy defaults
  */
 public record TableBlock(
-        List<Double> columnWeights, List<TableCell> header, List<List<TableCell>> rows, Style style)
+        List<Double> columnWeights,
+        List<TableCell> header,
+        List<List<TableCell>> rows,
+        Style style,
+        TableOptions options)
         implements Block {
     /**
-     * Snapshots weights, header, and each body row into unmodifiable lists. A null header becomes
-     * empty; null weights, rows, inner rows, and entries remain for generation-time validation. No
-     * table-shape or style checks occur here.
+     * Snapshots all supplied collections, retaining null rows and entries for field-path errors.
      *
-     * @param columnWeights relative widths to copy, or null
-     * @param header header to copy, or null for no header
-     * @param rows rows to snapshot, or null
-     * @param style optional table style overrides
+     * @param columnWeights nullable relative column widths
+     * @param header nullable repeating header
+     * @param rows nullable body rows
+     * @param style nullable table style
+     * @param options nullable appearance and row policies
      */
     public TableBlock {
         columnWeights = ImmutableLists.copyNullable(columnWeights);
@@ -42,5 +42,31 @@ public record TableBlock(
                         ? null
                         : ImmutableLists.copyNullable(
                                 rows.stream().map(ImmutableLists::copyNullable).toList());
+    }
+
+    /**
+     * Preserves the original constructor with legacy cell appearance and row keeps.
+     *
+     * @param columnWeights relative positive weights
+     * @param header optional repeating header
+     * @param rows ordered body rows
+     * @param style nullable table style
+     */
+    public TableBlock(
+            List<Double> columnWeights,
+            List<TableCell> header,
+            List<List<TableCell>> rows,
+            Style style) {
+        this(columnWeights, header, rows, style, null);
+    }
+
+    /**
+     * Replaces typography while preserving spans, content, appearance and row metadata.
+     *
+     * @param value nullable replacement table style
+     * @return immutable restyled table
+     */
+    public TableBlock withStyle(Style value) {
+        return new TableBlock(columnWeights, header, rows, value, options);
     }
 }

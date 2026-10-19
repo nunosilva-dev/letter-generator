@@ -13,6 +13,8 @@ package com.nsdev.lettergenerator.model.layout;
  * @param marginsMm outer page insets; null becomes 20 mm on every side
  * @param topZoneMm reserved height above body content, in millimeters; null becomes zero
  * @param bottomZoneMm reserved height below body content, in millimeters; null becomes zero
+ * @param dimensions optional custom paper edges in millimeters
+ * @param orientation optional orientation; null means PORTRAIT
  * @param signatureZoneMm additional reserved last-page height above the bottom zone, in
  *     millimeters; null becomes zero
  */
@@ -21,7 +23,9 @@ public record PageSpec(
         Margins marginsMm,
         Double topZoneMm,
         Double bottomZoneMm,
-        Double signatureZoneMm) {
+        Double signatureZoneMm,
+        PageDimensions dimensions,
+        Orientation orientation) {
     /** Height used for any omitted reserved region, in millimeters. */
     private static final double DEFAULT_ZONE_MM = 0.0;
 
@@ -40,13 +44,56 @@ public record PageSpec(
      * @param topZoneMm top region height in millimeters, or null for zero
      * @param bottomZoneMm bottom region height in millimeters, or null for zero
      * @param signatureZoneMm last-page signature region height in millimeters, or null for zero
+     * @param dimensions optional custom physical edges
+     * @param orientation optional orientation
      */
     public PageSpec {
+        orientation = orientation == null ? Orientation.PORTRAIT : orientation;
         size = size == null ? PageSize.A4 : size;
         marginsMm = marginsMm == null ? Margins.defaults() : marginsMm;
         topZoneMm = topZoneMm == null ? DEFAULT_ZONE_MM : topZoneMm;
         bottomZoneMm = bottomZoneMm == null ? DEFAULT_ZONE_MM : bottomZoneMm;
         signatureZoneMm = signatureZoneMm == null ? DEFAULT_ZONE_MM : signatureZoneMm;
+    }
+
+    /**
+     * Preserves the original named-page constructor.
+     *
+     * @param size named paper size
+     * @param marginsMm outer insets
+     * @param topZoneMm top reservation
+     * @param bottomZoneMm bottom reservation
+     * @param signatureZoneMm final signature reservation
+     */
+    public PageSpec(
+            PageSize size,
+            Margins marginsMm,
+            Double topZoneMm,
+            Double bottomZoneMm,
+            Double signatureZoneMm) {
+        this(size, marginsMm, topZoneMm, bottomZoneMm, signatureZoneMm, null, null);
+    }
+
+    /**
+     * @return effective physical width after custom dimensions and orientation
+     */
+    public double widthMm() {
+        double width = dimensions == null ? size.widthMm() : dimensions.widthMm();
+        double height = dimensions == null ? size.heightMm() : dimensions.heightMm();
+        return orientation == Orientation.LANDSCAPE
+                ? Math.max(width, height)
+                : Math.min(width, height);
+    }
+
+    /**
+     * @return effective physical height after custom dimensions and orientation
+     */
+    public double heightMm() {
+        double width = dimensions == null ? size.widthMm() : dimensions.widthMm();
+        double height = dimensions == null ? size.heightMm() : dimensions.heightMm();
+        return orientation == Orientation.LANDSCAPE
+                ? Math.min(width, height)
+                : Math.max(width, height);
     }
 
     /**

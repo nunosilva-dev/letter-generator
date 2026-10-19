@@ -10,6 +10,12 @@ final class FooterTagHandler implements TemplateTagHandler {
         return "footer";
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public String regionKey(Element element) {
+        return tagName() + ":" + TemplateAttributes.pages(element);
+    }
+
     /**
      * Replaces repeated footer blocks, inheriting root/region style and using the configured footer
      * height as the image fitting base. Page breaks are rejected.
@@ -18,8 +24,13 @@ final class FooterTagHandler implements TemplateTagHandler {
     public void handle(Element element, TemplateContext context) {
         context.builder()
                 .footerBlocks(
+                        TemplateAttributes.pages(element),
                         TemplateBlocks.read(
-                                        element, context, context.page().footerHeightMm(), false)
+                                        element,
+                                        context,
+                                        context.page().footerHeightMm(),
+                                        false,
+                                        "pages")
                                 .toArray(Block[]::new));
     }
 }

@@ -14,5 +14,31 @@ import com.nsdev.lettergenerator.model.style.Style;
  * @param text literal text, including any spaces or line feeds
  * @param style optional run-level overrides, or null to inherit from the block or cell
  * @param href external hyperlink target, or null for unlinked text
+ * @param pageNumber optional dynamic page field; text must be empty when supplied
  */
-public record TextRun(String text, Style style, String href) {}
+public record TextRun(String text, Style style, String href, PageNumber pageNumber) {
+    /**
+     * Creates a literal text run without a dynamic page field.
+     *
+     * @param text literal text
+     * @param style nullable inline style
+     * @param href nullable link destination
+     */
+    public TextRun(String text, Style style, String href) {
+        this(text, style, href, null);
+    }
+
+    /**
+     * @return a current physical page-number run with inherited appearance
+     */
+    public static TextRun currentPage() {
+        return new TextRun("", null, null, PageNumber.CURRENT);
+    }
+
+    /**
+     * @return a total physical page-count run with inherited appearance
+     */
+    public static TextRun pageCount() {
+        return new TextRun("", null, null, PageNumber.TOTAL);
+    }
+}

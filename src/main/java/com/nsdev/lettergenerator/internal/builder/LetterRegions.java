@@ -8,11 +8,12 @@ import com.nsdev.lettergenerator.model.layout.Bounds;
 import com.nsdev.lettergenerator.model.layout.FixedElement;
 import com.nsdev.lettergenerator.model.layout.Margins;
 import com.nsdev.lettergenerator.model.layout.PageSelector;
-import com.nsdev.lettergenerator.model.layout.PageSize;
 import com.nsdev.lettergenerator.model.layout.PageSpec;
 import com.nsdev.lettergenerator.model.layout.Zone;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /** Compiles ordinary letter regions to the explicit geometry required by the rendering model. */
 public final class LetterRegions {
@@ -54,12 +55,12 @@ public final class LetterRegions {
      * Compiles convenience regions into fixed elements and body-height reservations. A populated
      * top or bottom zone includes a 5 mm separation gap. Extra top/bottom elements activate the
      * corresponding reservation but do not enlarge its configured height; later validation checks
-     * their fit. Generated regions repeat on every page.
+     * their fit. Generated regions use disjoint page selectors with shared geometry.
      *
-     * @param size non-null paper size
+     * @param size non-null physical sheet settings
      * @param margins non-null physical margins in millimeters
-     * @param header non-null header block list
-     * @param footer non-null footer block list
+     * @param header resolved non-null header lists by disjoint selector
+     * @param footer resolved non-null footer lists by disjoint selector
      * @param logo optional fitted logo
      * @param headerBounds non-null resolved top-zone header box in millimeters
      * @param footerHeightMm configured footer height in millimeters
@@ -69,10 +70,10 @@ public final class LetterRegions {
      *     invalid
      */
     public static Layout arrange(
-            PageSize size,
+            PageSpec size,
             Margins margins,
-            List<Block> header,
-            List<Block> footer,
+            Map<PageSelector, List<Block>> header,
+            Map<PageSelector, List<Block>> footer,
             ImageBlock logo,
             Bounds headerBounds,
             double footerHeightMm,
@@ -85,10 +86,10 @@ public final class LetterRegions {
         ArgumentChecks.positive(width, "available page width");
         boolean hasHeader =
                 logo != null
-                        || !header.isEmpty()
+                        || header.values().stream().anyMatch(blocks -> !blocks.isEmpty())
                         || extra.stream().anyMatch(element -> element.zone() == Zone.TOP);
         boolean hasFooter =
-                !footer.isEmpty()
+                footer.values().stream().anyMatch(blocks -> !blocks.isEmpty())
                         || extra.stream().anyMatch(element -> element.zone() == Zone.BOTTOM);
         double headerHeight =
                 logo == null
@@ -109,25 +110,59 @@ public final class LetterRegions {
                             new Bounds(0, 0, logo.widthMm(), logo.heightMm()),
                             List.of(logo)));
         }
-        if (!header.isEmpty()) {
+        if (header.values().stream().anyMatch(blocks -> !blocks.isEmpty())) {
             ArgumentChecks.nonnegative(headerBounds.x(), "header x");
             ArgumentChecks.positive(headerBounds.width(), "available header width beside the logo");
             ArgumentChecks.require(
                     headerBounds.right() <= width + PageGeometry.GEOMETRY_TOLERANCE_MM,
                     "Header box exceeds the available page width");
-            elements.add(
-                    new FixedElement(HEADER_ID, Zone.TOP, PageSelector.ALL, headerBounds, header));
+            addVariants(elements, HEADER_ID, Zone.TOP, headerBounds, header);
         }
-        if (!footer.isEmpty()) {
-            elements.add(
-                    new FixedElement(
-                            FOOTER_ID,
-                            Zone.BOTTOM,
-                            PageSelector.ALL,
-                            new Bounds(0, REGION_GAP_MM, width, footerHeightMm),
-                            footer));
+        if (footer.values().stream().anyMatch(blocks -> !blocks.isEmpty())) {
+            addVariants(
+                    elements,
+                    FOOTER_ID,
+                    Zone.BOTTOM,
+                    new Bounds(0, REGION_GAP_MM, width, footerHeightMm),
+                    footer);
         }
         elements.addAll(extra);
-        return new Layout(new PageSpec(size, margins, topZone, bottomZone, 0d), elements);
+        return new Layout(
+                new PageSpec(
+                        size.size(),
+                        margins,
+                        topZone,
+                        bottomZone,
+                        0d,
+                        size.dimensions(),
+                        size.orientation()),
+                elements);
+    }
+
+    /**
+     * Appends populated disjoint variants, retaining legacy identifiers for ordinary ALL content.
+     *
+     * @param output mutable fixed-element output
+     * @param id base region identifier
+     * @param zone physical region zone
+     * @param bounds shared content bounds in millimeters
+     * @param variants resolved disjoint selections
+     */
+    private static void addVariants(
+            List<FixedElement> output,
+            String id,
+            Zone zone,
+            Bounds bounds,
+            Map<PageSelector, List<Block>> variants) {
+        for (PageSelector selector : PageSelector.values()) {
+            List<Block> blocks = variants.get(selector);
+            if (blocks != null && !blocks.isEmpty()) {
+                String variantId =
+                        selector == PageSelector.ALL
+                                ? id
+                                : id + "." + selector.name().toLowerCase(Locale.ROOT);
+                output.add(new FixedElement(variantId, zone, selector, bounds, blocks));
+            }
+        }
     }
 }

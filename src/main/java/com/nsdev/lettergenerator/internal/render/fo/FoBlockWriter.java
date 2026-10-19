@@ -1,9 +1,15 @@
 package com.nsdev.lettergenerator.internal.render.fo;
 
+import com.nsdev.lettergenerator.internal.content.ImageFormat;
+import com.nsdev.lettergenerator.internal.content.SvgImages;
 import com.nsdev.lettergenerator.internal.render.resource.ResourceUris;
 import com.nsdev.lettergenerator.internal.style.ResolvedStyle;
 import com.nsdev.lettergenerator.internal.xml.XmlBuilder;
 import com.nsdev.lettergenerator.model.block.Block;
+import com.nsdev.lettergenerator.model.block.BoxBlock;
+import com.nsdev.lettergenerator.model.block.CanvasBlock;
+import com.nsdev.lettergenerator.model.block.ColumnsBlock;
+import com.nsdev.lettergenerator.model.block.GroupBlock;
 import com.nsdev.lettergenerator.model.block.Heading;
 import com.nsdev.lettergenerator.model.block.ImageBlock;
 import com.nsdev.lettergenerator.model.block.ListBlock;
@@ -12,6 +18,7 @@ import com.nsdev.lettergenerator.model.block.Paragraph;
 import com.nsdev.lettergenerator.model.block.TableBlock;
 import com.nsdev.lettergenerator.model.layout.Bounds;
 import com.nsdev.lettergenerator.model.style.Style;
+import com.nsdev.lettergenerator.model.text.PageNumber;
 import com.nsdev.lettergenerator.model.text.TextRun;
 import java.net.URI;
 import java.util.LinkedHashMap;
@@ -80,6 +87,17 @@ final class FoBlockWriter {
      * @param sectionStyle optional section defaults layered after document defaults
      */
     void blocks(List<Block> blocks, Style sectionStyle) {
+        blocks(blocks, sectionStyle, null);
+    }
+
+    /**
+     * Emits a style scope with fallback typography below explicit and semantic styles.
+     *
+     * @param blocks content
+     * @param sectionStyle explicit inherited overrides
+     * @param fallback inherited fallback typography
+     */
+    private void blocks(List<Block> blocks, Style sectionStyle, Style fallback) {
         for (Block block : blocks) {
             if (block instanceof PageBreakBlock) {
                 FoPageBreaks.anchor(xml, true);
@@ -87,22 +105,99 @@ final class FoBlockWriter {
             }
             ResolvedStyle style =
                     ResolvedStyle.defaults(block instanceof Heading)
+                            .overlay(fallback)
                             .overlay(documentStyle)
                             .overlay(sectionStyle)
+                            .overlay(
+                                    block instanceof Heading heading
+                                            ? heading.semanticStyle()
+                                            : null)
                             .overlay(block.style());
-            if (block instanceof Paragraph paragraph) {
-                text(paragraph.runs(), style, false);
+            Style controls =
+                    (documentStyle == null ? Style.plain() : documentStyle)
+                            .overlay(sectionStyle)
+                            .overlay(block.style());
+            if (block instanceof GroupBlock group) {
+                xml.start("block");
+                if (group.style() != null
+                        && (group.style().spaceBeforeMm() != null
+                                || group.style().spaceAfterMm() != null)) {
+                    FoStyleWriter.spacing(
+                            xml, ResolvedStyle.defaults(false).overlay(group.style()));
+                }
+                if (controls.keepTogether() == null) {
+                    xml.attribute("keep-together.within-page", SOFT_KEEP_PRIORITY);
+                }
+                FoPaginationWriter.write(xml, controls);
+                Style parent =
+                        (sectionStyle == null ? Style.plain() : sectionStyle)
+                                .overlay(typography(group.style()));
+                Style defaults =
+                        (fallback == null ? Style.plain() : fallback).overlay(group.defaultStyle());
+                blocks(group.blocks(), parent, defaults);
+                xml.end();
+            } else if (block instanceof CanvasBlock canvas) {
+                layouts(sectionStyle, fallback).canvas(canvas, style, controls);
+            } else if (block instanceof ColumnsBlock columns) {
+                layouts(sectionStyle, fallback).columns(columns, style, controls);
+            } else if (block instanceof BoxBlock box) {
+                layouts(sectionStyle, fallback).box(box, style, controls);
+            } else if (block instanceof Paragraph paragraph) {
+                text(paragraph.runs(), style, false, controls);
             } else if (block instanceof Heading heading) {
-                text(heading.runs(), style, true);
+                text(heading.runs(), style, true, controls);
             } else if (block instanceof ListBlock list) {
-                list(list, style);
+                list(list, style, controls);
             } else if (block instanceof ImageBlock image) {
-                image(image, style);
+                image(image, style, controls);
             } else if (block instanceof TableBlock table) {
-                new FoTableWriter(xml, (runs, cellStyle) -> text(runs, cellStyle, false))
-                        .write(table, style);
+                new FoTableWriter(
+                                xml,
+                                (runs, cellStyle) -> text(runs, cellStyle, false),
+                                (cellBlocks, cellStyle) -> blocks(cellBlocks, cellStyle.toStyle()))
+                        .write(table, style, controls);
             }
         }
+    }
+
+    /**
+     * Connects specialized container layout to the same recursive style and resource writer.
+     *
+     * @param sectionStyle nullable inherited explicit overrides
+     * @param fallback nullable inherited fallback typography
+     * @return a writer confined to this block scope
+     */
+    private FoLayoutWriter layouts(Style sectionStyle, Style fallback) {
+        return new FoLayoutWriter(
+                xml,
+                (children, local) ->
+                        blocks(
+                                children,
+                                (sectionStyle == null ? Style.plain() : sectionStyle)
+                                        .overlay(local),
+                                fallback));
+    }
+
+    /**
+     * Keeps a containing group's pagination policies local while inheriting typography.
+     *
+     * @param value nullable group style
+     * @return inheritable typography
+     */
+    private static Style typography(Style value) {
+        return value == null
+                ? null
+                : new Style(
+                        value.fontFamily(),
+                        value.fontSizePt(),
+                        value.color(),
+                        value.bold(),
+                        value.italic(),
+                        value.underline(),
+                        value.textAlign(),
+                        value.lineHeight(),
+                        value.spaceBeforeMm(),
+                        value.spaceAfterMm());
     }
 
     /**
@@ -134,11 +229,24 @@ final class FoBlockWriter {
      * @param heading whether to prefer keeping this block with the next block
      */
     private void text(List<TextRun> runs, ResolvedStyle style, boolean heading) {
-        xml.start("block");
+        text(runs, style, heading, null);
+    }
+
+    /**
+     * Writes native text using ordinary heading keeps unless an explicit policy overrides them.
+     *
+     * @param runs ordered inline content
+     * @param style effective typography
+     * @param heading whether the ordinary heading keep applies
+     * @param controls nullable explicit pagination overrides
+     */
+    private void text(List<TextRun> runs, ResolvedStyle style, boolean heading, Style controls) {
+        xml.start("block").attribute("role", heading ? "H1" : "P");
         FoStyleWriter.block(xml, paragraphStyle(runs, style));
-        if (heading) {
+        if (heading && (controls == null || controls.keepWithNext() == null)) {
             xml.attribute("keep-with-next.within-page", "always");
         }
+        FoPaginationWriter.write(xml, controls);
         xml.attribute("white-space-collapse", false)
                 .attribute("white-space-treatment", "preserve")
                 .attribute("linefeed-treatment", "preserve");
@@ -179,7 +287,16 @@ final class FoBlockWriter {
         }
         xml.start("inline");
         FoStyleWriter.inline(xml, inherited.overlay(run.style()));
-        xml.text(run.text()).end();
+        if (run.pageNumber() == PageNumber.CURRENT) {
+            xml.start("page-number").end();
+        } else if (run.pageNumber() == PageNumber.TOTAL) {
+            xml.start("page-number-citation-last")
+                    .attribute("ref-id", FoPageLayoutWriter.PAGE_SEQUENCE_ID)
+                    .end();
+        } else {
+            xml.text(run.text());
+        }
+        xml.end();
         if (run.href() != null) {
             xml.end();
         }
@@ -208,9 +325,12 @@ final class FoBlockWriter {
      *
      * @param list validated ordered or unordered items
      * @param style resolved list appearance
+     * @param controls explicit pagination policy
      */
-    private void list(ListBlock list, ResolvedStyle style) {
-        int labelCharacters = Integer.toString(list.items().size()).length() + 1;
+    private void list(ListBlock list, ResolvedStyle style, Style controls) {
+        int itemCount =
+                list.contentItems() == null ? list.items().size() : list.contentItems().size();
+        int labelCharacters = Integer.toString(itemCount).length() + 1;
         double indent =
                 Math.max(
                         MINIMUM_LIST_INDENT_MM,
@@ -218,15 +338,25 @@ final class FoBlockWriter {
                                 + LABEL_SEPARATION_MM);
         xml.start("list-block");
         FoStyleWriter.block(xml, style);
+        FoPaginationWriter.write(xml, controls);
         xml.attribute("provisional-distance-between-starts", FoLengths.mm(indent))
                 .attribute("provisional-label-separation", FoLengths.mm(LABEL_SEPARATION_MM));
-        for (int index = 0; index < list.items().size(); index++) {
+        for (int index = 0; index < itemCount; index++) {
             xml.start("list-item").attribute("keep-together.within-page", SOFT_KEEP_PRIORITY);
             xml.start("list-item-label").attribute("end-indent", "label-end()");
             xml.start("block").text(list.ordered() ? (index + 1) + "." : BULLET).end();
             xml.end();
             xml.start("list-item-body").attribute("start-indent", "body-start()");
-            text(list.items().get(index), style, false);
+            if (list.contentItems() == null) {
+                text(list.items().get(index), style, false);
+            } else {
+                var item = list.contentItems().get(index);
+                text(item.runs(), style, false);
+                for (ListBlock child : item.children()) {
+                    Style nestedControls = child.style() == null ? Style.plain() : child.style();
+                    list(child, style.overlay(child.style()), nestedControls);
+                }
+            }
             xml.end().end();
         }
         xml.end();
@@ -238,17 +368,27 @@ final class FoBlockWriter {
      *
      * @param image validated bytes and fitted millimeter dimensions
      * @param style resolved image-block spacing/alignment
+     * @param controls explicit pagination policy
      */
-    private void image(ImageBlock image, ResolvedStyle style) {
+    private void image(ImageBlock image, ResolvedStyle style, Style controls) {
         URI resource = ResourceUris.image(images.size());
-        images.put(resource, image.data());
+        byte[] data = image.data();
+        images.put(
+                resource,
+                ImageFormat.SVG.mimeType().equals(image.mimeType())
+                        ? SvgImages.renderingBytes(data)
+                        : data);
         xml.start("block");
         FoStyleWriter.spacing(xml, style);
+        FoPaginationWriter.write(xml, controls);
         xml.attribute("text-align", style.textAlign().name().toLowerCase(Locale.ROOT))
                 .attribute("font-size", FoLengths.pt(0))
                 .attribute("line-height", FoLengths.pt(0));
-        xml.start("external-graphic")
-                .attribute("src", "url(" + resource + ")")
+        xml.start("external-graphic");
+        if (image.altText() != null) {
+            xml.attribute("fox:alt-text", image.altText());
+        }
+        xml.attribute("src", "url(" + resource + ")")
                 .attribute("width", FoLengths.mm(image.widthMm()))
                 .attribute("height", FoLengths.mm(image.heightMm()))
                 .attribute("content-width", "scale-to-fit")

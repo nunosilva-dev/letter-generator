@@ -3,8 +3,11 @@ package com.nsdev.lettergenerator.internal.render.fop;
 import com.nsdev.lettergenerator.font.FontVariant;
 import com.nsdev.lettergenerator.internal.font.FontRegistry;
 import com.nsdev.lettergenerator.internal.font.RegisteredFont;
+import com.nsdev.lettergenerator.internal.hyphenation.HyphenationPatterns;
 import com.nsdev.lettergenerator.internal.render.resource.ResourceUris;
 import com.nsdev.lettergenerator.internal.xml.XmlBuilder;
+import com.nsdev.lettergenerator.render.OutputProfile;
+import com.nsdev.lettergenerator.render.RenderOptions;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,13 +49,37 @@ final class FopConfiguration {
      */
     static FopFactory factory(Map<URI, byte[]> images, FontRegistry fonts)
             throws IOException, SAXException {
+        return factory(images, fonts, RenderOptions.defaults(), HyphenationPatterns.empty());
+    }
+
+    /**
+     * Creates a restricted native factory with optional PDF/A and explicit dictionaries.
+     *
+     * @param images owned image resources
+     * @param fonts owned font resources
+     * @param options native output profile
+     * @param patterns trusted owned hyphenation XML
+     * @return isolated restricted factory
+     * @throws IOException if configuration cannot be read
+     * @throws SAXException if configuration cannot be parsed
+     */
+    static FopFactory factory(
+            Map<URI, byte[]> images,
+            FontRegistry fonts,
+            RenderOptions options,
+            HyphenationPatterns patterns)
+            throws IOException, SAXException {
         List<FontBinding> bindings = fontBindings(fonts);
         MemoryResourceResolver resolver = resolver(images, bindings);
-        byte[] configuration = fontConfiguration(bindings).getBytes(StandardCharsets.UTF_8);
+        byte[] configuration =
+                fontConfiguration(bindings, options).getBytes(StandardCharsets.UTF_8);
         try (InputStream input = new ByteArrayInputStream(configuration)) {
-            return new FopConfParser(input, ResourceUris.BASE, resolver)
-                    .getFopFactoryBuilder()
-                    .build();
+            FopFactory factory =
+                    new FopConfParser(input, ResourceUris.BASE, resolver)
+                            .getFopFactoryBuilder()
+                            .build();
+            patterns.configure(factory);
+            return factory;
         }
     }
 
@@ -98,16 +125,18 @@ final class FopConfiguration {
      * configured family/style/weight triplets.
      *
      * @param fonts deterministic custom-face bindings to expose to the PDF renderer
+     * @param options requested native output profile
      * @return complete FOP configuration XML with subset-embedding font entries
      */
-    private static String fontConfiguration(List<FontBinding> fonts) {
+    private static String fontConfiguration(List<FontBinding> fonts, RenderOptions options) {
         XmlBuilder xml = new XmlBuilder();
         xml.start("fop").attribute("version", "1.0");
         xml.start("strict-configuration").text("true").end();
-        xml.start("renderers")
-                .start("renderer")
-                .attribute("mime", MimeConstants.MIME_PDF)
-                .start("fonts");
+        xml.start("renderers").start("renderer").attribute("mime", MimeConstants.MIME_PDF);
+        if (options.profile() == OutputProfile.PDF_A_2B) {
+            xml.start("pdf-a-mode").text("PDF/A-2b").end();
+        }
+        xml.start("fonts");
         for (FontBinding binding : fonts) {
             FontVariant variant = binding.font().variant();
             xml.start("font")

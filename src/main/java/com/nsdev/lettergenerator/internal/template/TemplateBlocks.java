@@ -39,6 +39,12 @@ final class TemplateBlocks {
                 region,
                 "Apply paragraph margins to p/div text blocks");
         return HtmlBlocks.read(
-                region, style, context.assets(), context.page().widthMm(), heightMm, body);
+                region,
+                style,
+                context.assets(),
+                context.page().widthMm(),
+                heightMm,
+                body,
+                context.theme());
     }
 }

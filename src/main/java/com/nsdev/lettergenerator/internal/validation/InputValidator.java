@@ -57,12 +57,17 @@ public final class InputValidator {
                 document.schemaVersion() == LetterDocument.SUPPORTED_SCHEMA_VERSION,
                 "schemaVersion",
                 "must be 1");
+        for (int index = 0; index < document.attachments().size(); index++) {
+            ValidationChecks.required(
+                    document.attachments().get(index), "attachments[" + index + "]");
+        }
         PageGeometry geometry = GeometryValidator.page(document.page());
         styles.validate(document.defaultStyle(), "defaultStyle");
         sections(document, geometry.innerWidthMm());
         fixedElements(document, geometry.innerWidthMm());
         signature(document, geometry.innerWidthMm());
         watermark(document.watermark());
+        CanvasHeights.validate(document, geometry);
     }
 
     /**

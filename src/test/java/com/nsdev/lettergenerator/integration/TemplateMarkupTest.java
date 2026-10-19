@@ -221,9 +221,10 @@ class TemplateMarkupTest {
                         .filter(element -> element.id().equals("letter.footer"))
                         .findFirst()
                         .orElseThrow();
-        assertTrue(footer.blocks().get(0) instanceof ImageBlock);
-        assertEquals(6, ((ImageBlock) footer.blocks().get(0)).heightMm());
-        assertEquals(TextAlign.CENTER, footer.blocks().get(1).style().textAlign());
+        var scope = (com.nsdev.lettergenerator.model.block.GroupBlock) footer.blocks().get(0);
+        assertTrue(scope.blocks().get(0) instanceof ImageBlock);
+        assertEquals(6, ((ImageBlock) scope.blocks().get(0)).heightMm());
+        assertEquals(TextAlign.CENTER, scope.style().textAlign());
         byte[] bytes = LetterPdfGenerator.builder().build().generate(letter);
         Files.createDirectories(Path.of("target/examples"));
         Files.write(Path.of("target/examples/template-features.pdf"), bytes);
@@ -339,7 +340,7 @@ class TemplateMarkupTest {
                 new String[] {
                     "<script>alert(1)</script>", "<p style='position:absolute'>Text</p>",
                     "<img src='file:///etc/passwd'>", "<p onclick='bad()'>Text</p>",
-                    "<table><tr><td colspan='2'>No spans</td></tr></table>"
+                    "<table><tr><td colspan='0'>Invalid span</td></tr></table>"
                 }) {
             var error =
                     assertThrows(

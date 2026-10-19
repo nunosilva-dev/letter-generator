@@ -65,6 +65,7 @@ public final class MarkupSupport {
                         attribute ->
                                 require(
                                         attribute.getKey().equals("style")
+                                                || attribute.getKey().equals("style-name")
                                                 || allowed.contains(attribute.getKey()),
                                         element,
                                         "Unsupported attribute: " + attribute.getKey()));

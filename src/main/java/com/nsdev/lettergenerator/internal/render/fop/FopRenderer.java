@@ -2,7 +2,12 @@ package com.nsdev.lettergenerator.internal.render.fop;
 
 import com.nsdev.lettergenerator.exception.PdfGenerationException;
 import com.nsdev.lettergenerator.internal.font.FontRegistry;
+import com.nsdev.lettergenerator.internal.hyphenation.HyphenationPatterns;
 import com.nsdev.lettergenerator.internal.render.fo.FoComposer;
+import com.nsdev.lettergenerator.model.DocumentMetadata;
+import com.nsdev.lettergenerator.model.DocumentSettings;
+import com.nsdev.lettergenerator.render.OutputProfile;
+import com.nsdev.lettergenerator.render.RenderOptions;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,10 +44,45 @@ public final class FopRenderer {
      * @throws PdfGenerationException if configuration, XML transformation or the FOP engine fails
      */
     public static FopRenderResult render(FoComposer.Composition composition, FontRegistry fonts) {
+        return render(
+                composition,
+                fonts,
+                DocumentSettings.defaults(),
+                RenderOptions.defaults(),
+                HyphenationPatterns.empty());
+    }
+
+    /**
+     * Renders with native metadata, structure or archival options and owned dictionaries.
+     *
+     * @param composition escaped FO and registered images
+     * @param fonts owned font snapshot
+     * @param settings document language and metadata
+     * @param options native output mode
+     * @param patterns owned explicit dictionaries
+     * @return native attempt diagnostics and bytes
+     */
+    public static FopRenderResult render(
+            FoComposer.Composition composition,
+            FontRegistry fonts,
+            DocumentSettings settings,
+            RenderOptions options,
+            HyphenationPatterns patterns) {
         try {
-            FopFactory factory = FopConfiguration.factory(composition.images(), fonts);
+            FopFactory factory =
+                    FopConfiguration.factory(composition.images(), fonts, options, patterns);
             FOUserAgent agent = factory.newFOUserAgent();
             agent.setProducer(PRODUCER);
+            if (settings.metadata() != null) {
+                DocumentMetadata metadata = settings.metadata();
+                agent.setTitle(metadata.title());
+                agent.setAuthor(metadata.author());
+                agent.setSubject(metadata.subject());
+                agent.setKeywords(metadata.keywords());
+            }
+            if (options.profile() == OutputProfile.TAGGED) {
+                agent.setAccessibility(true);
+            }
             CheckedRenderer renderer = new CheckedRenderer(agent);
             renderer.setDocumentHandler(
                     factory.getRendererFactory()

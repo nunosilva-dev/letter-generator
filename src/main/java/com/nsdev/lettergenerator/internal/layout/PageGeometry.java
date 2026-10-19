@@ -32,8 +32,8 @@ public record PageGeometry(
      */
     public static PageGeometry from(PageSpec page) {
         Margins margins = page.marginsMm();
-        double width = page.size().widthMm() - margins.left() - margins.right();
-        double height = page.size().heightMm() - margins.top() - margins.bottom();
+        double width = page.widthMm() - margins.left() - margins.right();
+        double height = page.heightMm() - margins.top() - margins.bottom();
         double bodyHeight = height - page.topZoneMm() - page.bottomZoneMm();
         return new PageGeometry(width, height, bodyHeight, bodyHeight - page.signatureZoneMm());
     }

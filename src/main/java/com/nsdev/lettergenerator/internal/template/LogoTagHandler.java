@@ -19,7 +19,9 @@ final class LogoTagHandler implements TemplateTagHandler {
     public void handle(Element element, TemplateContext context) {
         MarkupSupport.attributes(element);
         MarkupSupport.require(
-                element.attr("style").isBlank(), element, "Apply logo styles to its img element");
+                element.attr("style").isBlank() && !element.hasAttr("style-name"),
+                element,
+                "Apply logo styles to its img element");
         context.builder()
                 .logo(
                         TemplateImages.read(

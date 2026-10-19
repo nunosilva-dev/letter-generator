@@ -2,6 +2,7 @@ package com.nsdev.lettergenerator.internal.builder.content;
 
 import com.nsdev.lettergenerator.model.block.Block;
 import com.nsdev.lettergenerator.model.style.Style;
+import com.nsdev.lettergenerator.theme.LetterTheme;
 import java.util.List;
 import java.util.Map;
 
@@ -29,4 +30,26 @@ public sealed interface ContentPart
      */
     List<Block> resolve(
             Map<String, byte[]> assets, double width, double height, boolean body, Style defaults);
+
+    /**
+     * Resolves content with final theme-aware geometry. Strategies that do not parse deferred
+     * markup retain their original behavior through the existing resolution method.
+     *
+     * @param assets final named image bytes
+     * @param width available region width in millimeters
+     * @param height image fitting height basis in millimeters
+     * @param body whether body page breaks are allowed
+     * @param defaults nullable explicit inherited typography
+     * @param theme optional final document theme
+     * @return immutable ordered blocks
+     */
+    default List<Block> resolve(
+            Map<String, byte[]> assets,
+            double width,
+            double height,
+            boolean body,
+            Style defaults,
+            LetterTheme theme) {
+        return resolve(assets, width, height, body, defaults);
+    }
 }

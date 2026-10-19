@@ -73,14 +73,18 @@ public record ResolvedStyle(
         if (style == null) {
             return this;
         }
+        ResolvedStyle base = style.baseStyle() == null ? this : overlay(style.baseStyle());
         return new ResolvedStyle(
-                inherited(style.fontFamily(), fontFamily),
-                        inherited(style.fontSizePt(), fontSizePt),
-                inherited(style.color(), color), inherited(style.bold(), bold),
-                inherited(style.italic(), italic), inherited(style.underline(), underline),
-                inherited(style.textAlign(), textAlign), inherited(style.lineHeight(), lineHeight),
-                inherited(style.spaceBeforeMm(), spaceBeforeMm),
-                        inherited(style.spaceAfterMm(), spaceAfterMm));
+                inherited(style.fontFamily(), base.fontFamily),
+                inherited(style.fontSizePt(), base.fontSizePt),
+                inherited(style.color(), base.color),
+                inherited(style.bold(), base.bold),
+                inherited(style.italic(), base.italic),
+                inherited(style.underline(), base.underline),
+                inherited(style.textAlign(), base.textAlign),
+                inherited(style.lineHeight(), base.lineHeight),
+                inherited(style.spaceBeforeMm(), base.spaceBeforeMm),
+                inherited(style.spaceAfterMm(), base.spaceAfterMm));
     }
 
     /**
@@ -108,6 +112,26 @@ public record ResolvedStyle(
      */
     public FontVariant variant() {
         return FontVariant.fromStyle(bold, italic);
+    }
+
+    /**
+     * Converts effective typography back into explicit model overrides for a nested content
+     * context.
+     *
+     * @return immutable typography and spacing values; pagination controls remain local to blocks
+     */
+    public Style toStyle() {
+        return new Style(
+                fontFamily,
+                fontSizePt,
+                color,
+                bold,
+                italic,
+                underline,
+                textAlign,
+                lineHeight,
+                spaceBeforeMm,
+                spaceAfterMm);
     }
 
     /**

@@ -4,49 +4,114 @@ import com.nsdev.lettergenerator.builder.LetterBuilder;
 import com.nsdev.lettergenerator.internal.defaults.LetterLayoutDefaults;
 import com.nsdev.lettergenerator.internal.markup.HtmlStyles;
 import com.nsdev.lettergenerator.internal.markup.MarkupSupport;
+import com.nsdev.lettergenerator.localization.LocaleSettings;
 import com.nsdev.lettergenerator.model.layout.Margins;
+import com.nsdev.lettergenerator.model.layout.Orientation;
 import com.nsdev.lettergenerator.model.layout.PageSize;
 import com.nsdev.lettergenerator.model.style.Style;
+import java.time.format.FormatStyle;
 import java.util.Locale;
 import org.jsoup.nodes.Element;
 
 /**
- * Root options shared by region handlers. Inner dimensions exclude physical margins, but do not
- * subtract header/footer body reservations; final builder geometry resolves those reservations.
+ * Root geometry shared by region handlers; inner dimensions exclude physical margins.
  *
- * @param size selected paper dimensions
- * @param marginsMm uniform physical margins in millimeters
- * @param headerHeightMm configured header height in millimeters
- * @param footerHeightMm configured footer height in millimeters
- * @param defaults root text overrides inherited by region markup
+ * @param size named paper dimensions
+ * @param marginsMm uniform margins
+ * @param headerHeightMm header region height
+ * @param footerHeightMm footer region height
+ * @param defaults root text style
+ * @param paperWidthMm optional custom paper width
+ * @param paperHeightMm optional custom paper height
+ * @param orientation selected paper orientation
  */
 record TemplatePage(
         PageSize size,
         double marginsMm,
         double headerHeightMm,
         double footerHeightMm,
-        Style defaults) {
+        Style defaults,
+        Double paperWidthMm,
+        Double paperHeightMm,
+        Orientation orientation) {
     /**
-     * Reads the root allowlist, A4/LETTER paper name, numeric millimeter options and text style.
-     * Missing options default to A4, 20 mm margins, 25 mm header and 15 mm footer. Numeric parsing
-     * rejects non-finite values here; builder argument checks enforce valid geometry afterward.
+     * Preserves the original standard-paper internal constructor.
+     *
+     * @param size named paper
+     * @param marginsMm margins
+     * @param headerHeightMm header height
+     * @param footerHeightMm footer height
+     * @param defaults text defaults
+     */
+    TemplatePage(
+            PageSize size,
+            double marginsMm,
+            double headerHeightMm,
+            double footerHeightMm,
+            Style defaults) {
+        this(
+                size,
+                marginsMm,
+                headerHeightMm,
+                footerHeightMm,
+                defaults,
+                null,
+                null,
+                Orientation.PORTRAIT);
+    }
+
+    /**
+     * Reads allowlisted root geometry, locale and typography options.
      *
      * @param root parsed letter root
-     * @return typed root options and text defaults
+     * @return typed geometry
      */
     static TemplatePage read(Element root) {
         MarkupSupport.attributes(
-                root, "page", "margins-mm", "header-height-mm", "footer-height-mm");
+                root,
+                "page",
+                "margins-mm",
+                "header-height-mm",
+                "footer-height-mm",
+                "page-width-mm",
+                "page-height-mm",
+                "orientation",
+                "language-tag",
+                "date-pattern",
+                "date-style",
+                "currency",
+                "zone-id");
         Style defaults = HtmlStyles.text(null, root);
         PageSize size;
+        Orientation orientation;
         try {
             size =
                     root.hasAttr("page")
                             ? PageSize.valueOf(root.attr("page").toUpperCase(Locale.ROOT))
                             : PageSize.A4;
+            orientation =
+                    root.hasAttr("orientation")
+                            ? Orientation.valueOf(root.attr("orientation").toUpperCase(Locale.ROOT))
+                            : Orientation.PORTRAIT;
         } catch (IllegalArgumentException exception) {
-            throw MarkupSupport.error(root, "Page must be A4 or LETTER");
+            throw MarkupSupport.error(root, "Invalid page name or orientation");
         }
+        MarkupSupport.require(
+                root.hasAttr("page-width-mm") == root.hasAttr("page-height-mm"),
+                root,
+                "Custom page requires both width and height");
+        Double width =
+                root.hasAttr("page-width-mm")
+                        ? TemplateAttributes.number(root, "page-width-mm", 0)
+                        : null;
+        Double height =
+                root.hasAttr("page-height-mm")
+                        ? TemplateAttributes.number(root, "page-height-mm", 0)
+                        : null;
+        MarkupSupport.require(
+                width == null || width > 0 && height > 0,
+                root,
+                "Custom page dimensions must be positive");
         return new TemplatePage(
                 size,
                 TemplateAttributes.number(root, "margins-mm", Margins.defaults().top()),
@@ -54,38 +119,88 @@ record TemplatePage(
                         root, "header-height-mm", LetterLayoutDefaults.HEADER_HEIGHT_MM),
                 TemplateAttributes.number(
                         root, "footer-height-mm", LetterLayoutDefaults.FOOTER_HEIGHT_MM),
-                defaults);
+                defaults,
+                width,
+                height,
+                orientation);
     }
 
     /**
-     * Creates the per-call builder and applies root defaults before any region handler runs.
+     * Resolves root formatting options above optional builder settings.
      *
-     * @return fresh mutable builder initialized with the root options
+     * @param root letter root
+     * @param defaults optional explicit default locale
+     * @return deterministic formatting settings
+     */
+    static LocaleSettings locale(Element root, LocaleSettings defaults) {
+        LocaleSettings base = defaults == null ? LocaleSettings.defaults() : defaults;
+        try {
+            return new LocaleSettings(
+                    root.hasAttr("language-tag") ? root.attr("language-tag") : base.languageTag(),
+                    root.hasAttr("date-pattern") ? root.attr("date-pattern") : base.datePattern(),
+                    root.hasAttr("date-style")
+                            ? FormatStyle.valueOf(root.attr("date-style").toUpperCase(Locale.ROOT))
+                            : base.dateStyle(),
+                    root.hasAttr("currency") ? root.attr("currency") : base.currencyCode(),
+                    root.hasAttr("zone-id") ? root.attr("zone-id") : base.zoneId());
+        } catch (IllegalArgumentException | java.time.DateTimeException exception) {
+            throw MarkupSupport.error(root, "Invalid locale: " + exception.getMessage());
+        }
+    }
+
+    /**
+     * Detects explicit root locale configuration.
+     *
+     * @param root parsed letter root
+     * @return whether any formatting option is supplied
+     */
+    static boolean hasLocale(Element root) {
+        return root.hasAttr("language-tag")
+                || root.hasAttr("date-pattern")
+                || root.hasAttr("date-style")
+                || root.hasAttr("currency")
+                || root.hasAttr("zone-id");
+    }
+
+    /**
+     * @return a fresh builder initialized with final paper geometry
      */
     LetterBuilder builder() {
-        return new LetterBuilder()
-                .style(defaults)
-                .page(size)
-                .marginsMm(marginsMm)
-                .headerHeightMm(headerHeightMm)
-                .footerHeightMm(footerHeightMm);
+        var builder =
+                new LetterBuilder()
+                        .style(defaults)
+                        .page(size)
+                        .marginsMm(marginsMm)
+                        .headerHeightMm(headerHeightMm)
+                        .footerHeightMm(footerHeightMm)
+                        .orientation(orientation);
+        if (paperWidthMm != null) {
+            builder.pageSizeMm(paperWidthMm, paperHeightMm);
+        }
+        return builder;
     }
 
     /**
-     * Returns paper width inside uniform left/right margins, in millimeters.
-     *
-     * @return inner-page width in millimeters
+     * @return inner oriented page width in millimeters
      */
     double widthMm() {
-        return size.widthMm() - marginsMm * 2;
+        double width = paperWidthMm == null ? size.widthMm() : paperWidthMm;
+        double height = paperHeightMm == null ? size.heightMm() : paperHeightMm;
+        return (orientation == Orientation.LANDSCAPE
+                        ? Math.max(width, height)
+                        : Math.min(width, height))
+                - marginsMm * 2;
     }
 
     /**
-     * Returns paper height inside uniform top/bottom margins, in millimeters.
-     *
-     * @return inner-page height in millimeters
+     * @return inner oriented page height in millimeters
      */
     double heightMm() {
-        return size.heightMm() - marginsMm * 2;
+        double width = paperWidthMm == null ? size.widthMm() : paperWidthMm;
+        double height = paperHeightMm == null ? size.heightMm() : paperHeightMm;
+        return (orientation == Orientation.LANDSCAPE
+                        ? Math.min(width, height)
+                        : Math.max(width, height))
+                - marginsMm * 2;
     }
 }

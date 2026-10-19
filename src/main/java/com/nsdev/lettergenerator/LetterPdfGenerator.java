@@ -1,17 +1,28 @@
 package com.nsdev.lettergenerator;
 
+import com.nsdev.lettergenerator.diagnostics.Diagnostic;
+import com.nsdev.lettergenerator.diagnostics.DiagnosticPhase;
+import com.nsdev.lettergenerator.diagnostics.DiagnosticSeverity;
+import com.nsdev.lettergenerator.diagnostics.ValidationReport;
 import com.nsdev.lettergenerator.exception.InvalidLetterException;
 import com.nsdev.lettergenerator.exception.PdfGenerationException;
 import com.nsdev.lettergenerator.font.FontVariant;
+import com.nsdev.lettergenerator.internal.composition.DocumentPreparation;
+import com.nsdev.lettergenerator.internal.font.FontFallbackPreparation;
 import com.nsdev.lettergenerator.internal.font.FontRegistry;
 import com.nsdev.lettergenerator.internal.font.FontSource;
+import com.nsdev.lettergenerator.internal.hyphenation.HyphenationPatterns;
 import com.nsdev.lettergenerator.internal.json.JsonInput;
 import com.nsdev.lettergenerator.internal.render.DocumentRenderer;
 import com.nsdev.lettergenerator.internal.validation.InputValidator;
 import com.nsdev.lettergenerator.model.LetterDocument;
+import com.nsdev.lettergenerator.render.RenderOptions;
+import com.nsdev.lettergenerator.render.RenderResult;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Generates complete PDF letters from immutable Java models or JSON. Instances are safe to share
@@ -24,19 +35,28 @@ public final class LetterPdfGenerator {
     /** Reusable renderer that creates fresh rendering engine state for each call. */
     private final DocumentRenderer renderer;
 
+    /** Font snapshot used when resolving explicitly configured fallback runs. */
+    private final FontRegistry fonts;
+
+    /** Owned application-supplied hyphenation dictionaries. */
+    private final HyphenationPatterns patterns;
+
     /** Uses the PDF engine's built-in fonts; no font files or registration are required. */
     public LetterPdfGenerator() {
-        this(FontRegistry.empty());
+        this(FontRegistry.empty(), HyphenationPatterns.empty());
     }
 
     /**
      * Binds validation and rendering to one immutable loaded font registry.
      *
      * @param fonts immutable trusted font snapshot
+     * @param patterns immutable trusted pattern snapshot
      */
-    private LetterPdfGenerator(FontRegistry fonts) {
+    private LetterPdfGenerator(FontRegistry fonts, HyphenationPatterns patterns) {
+        this.fonts = fonts;
+        this.patterns = patterns;
         validator = new InputValidator(fonts);
-        renderer = new DocumentRenderer(fonts);
+        renderer = new DocumentRenderer(fonts, patterns);
     }
 
     /**
@@ -65,6 +85,29 @@ public final class LetterPdfGenerator {
     }
 
     /**
+     * Renders strict JSON and returns actual pagination and diagnostic information.
+     *
+     * @param json nonnull shared-model JSON
+     * @return accepted PDF and report using the standard output profile
+     */
+    public RenderResult renderJson(String json) {
+        return renderJson(json, RenderOptions.defaults());
+    }
+
+    /**
+     * Renders strict JSON with the same output choices available to Java and HTML models.
+     *
+     * @param json nonnull shared-model JSON
+     * @param options per-call output choices
+     * @return complete accepted PDF and rendering report
+     * @throws InvalidLetterException for invalid input or incompatible output choices
+     * @throws PdfGenerationException for rejected native layout or PDF processing
+     */
+    public RenderResult renderJson(String json, RenderOptions options) {
+        return render(JsonInput.read(json), options);
+    }
+
+    /**
      * Validates an immutable document and renders it using this generator's font snapshot. All
      * requested processing must succeed before PDF bytes are returned. This method can be called
      * concurrently on the same generator.
@@ -75,8 +118,80 @@ public final class LetterPdfGenerator {
      * @throws PdfGenerationException if composition, layout, or watermark processing fails
      */
     public byte[] generate(LetterDocument document) {
-        validator.validate(document);
-        return renderer.render(document);
+        return render(document).pdfBytes();
+    }
+
+    /**
+     * Validates composition references, declared geometry, fonts and content without running PDF
+     * layout. Reports the first semantic model error; template inspection separately aggregates
+     * missing variables and asset errors. Success does not guarantee that content fits.
+     *
+     * @param document nullable model to inspect
+     * @return immutable input report
+     */
+    public ValidationReport validate(LetterDocument document) {
+        try {
+            LetterDocument prepared =
+                    FontFallbackPreparation.prepare(DocumentPreparation.prepare(document), fonts)
+                            .document();
+            patterns.validate(prepared);
+            validator.validate(prepared);
+            return new ValidationReport(List.of());
+        } catch (InvalidLetterException exception) {
+            return new ValidationReport(
+                    List.of(
+                            new Diagnostic(
+                                    "INVALID_INPUT",
+                                    DiagnosticSeverity.ERROR,
+                                    DiagnosticPhase.INPUT,
+                                    exception.fieldPath(),
+                                    exception.getMessage())));
+        }
+    }
+
+    /**
+     * Renders a validated model and returns its actual pagination and processing diagnostics.
+     *
+     * @param document non-null input
+     * @return accepted PDF and rendering report
+     * @throws InvalidLetterException for invalid input
+     * @throws PdfGenerationException for rejected layout or PDF processing
+     */
+    public RenderResult render(LetterDocument document) {
+        return render(document, RenderOptions.defaults());
+    }
+
+    /**
+     * Renders with optional authoring overlays. Invalid input and rejected layouts still throw; no
+     * partial PDF is returned. Debug geometry describes allocated regions, not glyph bounds.
+     *
+     * @param document non-null input
+     * @param options non-null rendering options
+     * @return accepted PDF with actual page count and optional declared geometry
+     * @throws InvalidLetterException for invalid input
+     * @throws IllegalArgumentException if options is null
+     * @throws PdfGenerationException for rejected layout or PDF processing
+     */
+    public RenderResult render(LetterDocument document, RenderOptions options) {
+        if (options == null) {
+            throw new IllegalArgumentException("Render options are required");
+        }
+        LetterDocument prepared = DocumentPreparation.prepare(document);
+        var resolved = FontFallbackPreparation.prepare(prepared, fonts);
+        patterns.validate(resolved.document());
+        validator.validate(resolved.document());
+        RenderResult result = renderer.render(resolved.document(), options);
+        if (resolved.diagnostics().isEmpty()) {
+            return result;
+        }
+        List<Diagnostic> diagnostics = new ArrayList<>(resolved.diagnostics());
+        diagnostics.addAll(result.diagnostics());
+        return new RenderResult(
+                result.pdfBytes(),
+                result.pageCount(),
+                diagnostics,
+                result.debugBoxes(),
+                result.parts());
     }
 
     /**
@@ -90,6 +205,9 @@ public final class LetterPdfGenerator {
          * Ordered deferred font registrations; each build independently reads and validates them.
          */
         private final List<FontSource> fonts = new ArrayList<>();
+
+        /** Ordered trusted pattern registrations, snapshotted independently by every build. */
+        private final Map<String, byte[]> patterns = new LinkedHashMap<>();
 
         /** Creates an empty mutable set of deferred font registrations. */
         private Builder() {}
@@ -127,6 +245,25 @@ public final class LetterPdfGenerator {
         }
 
         /**
+         * Registers trusted TeX-style FOP hyphenation XML for one language or language-country. XML
+         * declarations of external entities or DTDs are rejected. No dictionary lookup or download
+         * is performed; document hyphenation requires its exact registered tag.
+         *
+         * @param languageTag BCP 47 language or language-country tag
+         * @param trustedXml pattern XML, copied immediately and validated by build
+         * @return this builder
+         * @throws InvalidLetterException for duplicate tags or absent bytes
+         */
+        public Builder hyphenationPatterns(String languageTag, byte[] trustedXml) {
+            if (trustedXml == null || patterns.containsKey(languageTag)) {
+                throw new InvalidLetterException(
+                        "hyphenation", "Pattern bytes and unique tag required");
+            }
+            patterns.put(languageTag, trustedXml.clone());
+            return this;
+        }
+
+        /**
          * Reads and validates every registered font and creates an independent reusable generator.
          * Only TrueType files with TrueType outlines are accepted. Every custom family must include
          * {@link FontVariant#REGULAR}; other faces must be registered if document styles use them.
@@ -138,7 +275,8 @@ public final class LetterPdfGenerator {
          *     belongs to a family without a regular face
          */
         public LetterPdfGenerator build() {
-            return new LetterPdfGenerator(FontRegistry.load(fonts));
+            return new LetterPdfGenerator(
+                    FontRegistry.load(fonts), new HyphenationPatterns(patterns));
         }
     }
 }

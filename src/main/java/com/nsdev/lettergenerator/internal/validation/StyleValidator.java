@@ -34,6 +34,7 @@ final class StyleValidator {
         if (style == null) {
             return;
         }
+        validate(style.baseStyle(), path + ".baseStyle");
         if (style.fontFamily() != null) {
             fonts.requireFamily(style.fontFamily(), path + ".fontFamily");
         }
@@ -51,6 +52,12 @@ final class StyleValidator {
         }
         if (style.color() != null) {
             color(style.color(), path + ".color");
+        }
+        if (style.widows() != null) {
+            ValidationChecks.require(style.widows() > 0, path + ".widows", "must be positive");
+        }
+        if (style.orphans() != null) {
+            ValidationChecks.require(style.orphans() > 0, path + ".orphans", "must be positive");
         }
     }
 

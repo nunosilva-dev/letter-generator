@@ -1,6 +1,6 @@
 # Letter Generator
 
-A framework-free Java 17 library that turns Java objects, HTML templates or JSON into PDF bytes. Apache FOP composes and paginates the letter; PDFBox runs only when a watermark is requested. Supply content, styles and assets to generate complete PDF bytes.
+A framework-free Java 17 library that turns Java objects, HTML templates or JSON into PDF bytes. Apache FOP composes and paginates the letter; PDFBox applies optional watermarks and debug overlays after successful layout. Supply content, styles and assets to generate complete PDF bytes.
 
 This README is the complete usage guide for `com.nsdev:letter-generator:1.0.0-SNAPSHOT`.
 
@@ -29,6 +29,17 @@ Follow the guide for a first integration, or jump to a task:
 - [21. Public API reference](#21-public-api-reference)
 - [22. Supported scope and limits](#22-supported-scope-and-limits)
 - [23. Development and code quality](#23-development-and-code-quality)
+- [24. Reusable themes and components](#24-reusable-themes-and-components)
+- [25. Validate, diagnose and preview layout](#25-validate-diagnose-and-preview-layout)
+- [26. Semantic letter parts and address layouts](#26-semantic-letter-parts-and-address-layouts)
+- [27. Country-aware dates, numbers and currencies](#27-country-aware-dates-numbers-and-currencies)
+- [28. Typed data, conditions and repeated rows](#28-typed-data-conditions-and-repeated-rows)
+- [29. Prepare templates once and inspect their contracts](#29-prepare-templates-once-and-inspect-their-contracts)
+- [30. Company stationery and table appearance](#30-company-stationery-and-table-appearance)
+- [31. Canvases, columns, boxes and custom paper](#31-canvases-columns-boxes-and-custom-paper)
+- [32. Writing direction, fallback fonts and hyphenation](#32-writing-direction-fallback-fonts-and-hyphenation)
+- [33. Metadata, tagged output and PDF/A](#33-metadata-tagged-output-and-pdfa)
+- [34. Append existing PDFs](#34-append-existing-pdfs)
 
 ## 1. Install and build
 
@@ -266,6 +277,33 @@ For an exact box, supply all four dimensions:
 
 The fluent header repeats on every page. For a first-page address block and a different following-page header, use [advanced fixed elements](#16-advanced-fixed-elements-and-last-page-signatures).
 
+### First-page and continuation stationery
+
+```java
+import com.nsdev.lettergenerator.model.layout.PageSelector;
+
+var letter = Letter.builder()
+    .header("Example Company")                         // ALL fallback
+    .header(PageSelector.FIRST, "Example Company\nFull postal address")
+    .header(PageSelector.FOLLOWING, "Example Company | Continued")
+    .footerHtml("<p>Page <page-number></page-number> of <page-count></page-count></p>")
+    .body("First page", Letter.PAGE_BREAK, "Second page")
+    .build();
+```
+
+All header/footer content methods accept a leading `PageSelector`: text, HTML, typed blocks and image bytes/paths. Specific content replaces the ALL fallback on selected pages. `headerBlocks(PageSelector.FOLLOWING)` supplies an explicit empty continuation header. Styles can vary with `headerStyle(selector, style)` and `footerStyle(selector, style)`.
+
+Template equivalents:
+
+```html
+<header><p>Default company header</p></header>
+<header pages="first"><p>Company and full address</p></header>
+<header pages="following"><p>Continued</p></header>
+<footer><p>Page <page-number></page-number> of <page-count></page-count></p></footer>
+```
+
+Duplicate headers/footers for the same selector are errors. FIRST and FOLLOWING are disjoint; ALL is fallback content. Geometry is shared: header position, width and height, and footer height apply to every variant. The final geometry configuration wins, while variant styles/content remain independent. The body reserves those shared heights on all pages, even where a variant is empty. Use advanced `FixedElement` values for independent rectangles within the same reserved zones. A single-page letter uses FIRST content.
+
 ## 6. Footers and logos
 
 Plain footers:
@@ -304,7 +342,7 @@ var letter = Letter.builder()
 
 This fragment does not substitute `${literal}`; it prints that text. Use the full template API when replacements are needed. A footer may also contain a table or explicit immutable blocks through `footerBlocks(...)`.
 
-`.logo(Path/byte[])` fits a PNG/JPEG within 45×20 mm and places it at the top-left of the inner page, beside the automatic header. `.logo(ImageBlock)` supplies explicit image dimensions/style. The separate logo region repeats on every page. To place a brand image within an exact header rather than beside it, include that image in header content and omit the separate logo call.
+`.logo(Path/byte[])` fits a PNG/JPEG/static SVG within 45×20 mm and places it at the top-left of the inner page, beside the automatic header. `.logo(ImageBlock)` supplies explicit image dimensions/style. The separate logo region repeats on every page. To place a brand image within an exact header rather than beside it, include that image in header content and omit the separate logo call.
 
 ## 7. Paragraphs, line changes and page breaks
 
@@ -333,6 +371,39 @@ Consecutive, leading and trailing explicit page breaks are preserved. That can i
 In HTML, ordinary whitespace/newlines collapse. Use `<p>` for paragraphs, `<br>` for a line change, and paired `<page-break></page-break>` for a page change. Do not use `<page-break/>`; it is a custom HTML element, not a void tag. A newline in a replacement value follows these HTML whitespace rules. For a multiline address, put `<br>` between separate placeholders, or use the plain Java header method.
 
 Content appends in call order: `body(...).table(...).bodyHtml(...).body(...)`. Header, footer and signature content calls replace the prior content of that region. To combine several items in a region, use one rich fragment, one block array, or one signature call with multiple parts.
+
+### Deliberate pagination controls
+
+```java
+import com.nsdev.lettergenerator.model.layout.Keep;
+import com.nsdev.lettergenerator.model.block.GroupBlock;
+
+var policy = Style.builder()
+    .keepTogether(Keep.PREFER)
+    .keepWithNext(Keep.AUTO)
+    .widows(3).orphans(3)
+    .build();
+
+var together = new GroupBlock(List.of(firstBlock, secondBlock),
+    Style.builder().keepTogether(Keep.ALWAYS).build());
+var letter = Letter.builder().block(together).group("Address line 1\nAddress line 2").build();
+```
+
+`AUTO` allows splitting, `PREFER` requests a breakable keep, and `ALWAYS` requests a strong keep. The no-argument style methods `keepTogether()` and `keepWithNext()` select ALWAYS. Headings ordinarily keep with their successor; an explicit `keepWithNext(Keep.AUTO)` disables that default. `keepWithNext` links a block's end to the next block's beginning; use a kept group, or keep the successor together, when its whole content must move with it. Oversized strong keeps can cause layout rejection; the library does not shrink them.
+
+Groups inherit typography into their children, apply margins around the group, and keep their pagination controls on the group itself. Their ordinary policy is PREFER. `group(Block...)` and `group(String...)` are fluent shortcuts. Explicit AUTO groups and ordinary grouping divs in body flow may contain page breaks; kept groups, signatures, fixed content and table cells cannot.
+
+```html
+<group style="keep-together:always">
+  <h2>Account details</h2><p>These details should travel with the heading.</p>
+</group>
+<p style="keep-with-next:always">Please review the following:</p>
+<p style="keep-together:prefer;widows:3;orphans:3">A naturally wrapped paragraph...</p>
+```
+
+Widows are the minimum trailing lines and orphans the minimum opening lines of a naturally wrapped paragraph. Counts must be positive integers. FOP treats forced newlines and `br` as separate layout paragraphs, so widow/orphan counts do not span those forced boundaries. Use a kept group or `keep-together` for content with explicit line breaks. These are native layout controls, subject to available space and FOP's supported behavior.
+
+For typed page fields, use `TextRun.currentPage()` and `TextRun.pageCount()` among ordinary runs. In JSON, set `"text":""` and `"pageNumber":"CURRENT"` or `"TOTAL"`. Totals include an automatically recovered final signature page. Page fields work in any text run, including headers, footers and cells.
 
 ## 8. Style any text or content block
 
@@ -375,7 +446,7 @@ var paragraph = new Paragraph(List.of(
 var letter = Letter.builder().block(paragraph).build();
 ```
 
-Style inheritance is property-by-property: rendering defaults → document → section → block → run. Missing properties inherit. `Style.plain()` has no overrides. Explicit boolean values such as `.bold(false)` disable inherited emphasis. Region convenience styles are applied to their blocks, with explicit block styles taking precedence. A style does not change supplied text. `Style.overlay(other)` returns a new style with only the explicitly supplied properties of `other` overriding the original.
+Style inheritance is property-by-property: rendering defaults → document → section → block → run. Missing properties inherit. `Style.plain()` has no overrides. Explicit boolean values such as `.bold(false)` disable inherited emphasis. Region convenience styles are applied to their blocks, with explicit block styles taking precedence. A style does not change supplied text. `Style.overlay(other)` returns an immutable cascade where the later style wins. When named references remain unresolved, it retains ordered parent layers until generator preparation resolves them.
 
 | Java property | Meaning |
 | --- | --- |
@@ -407,9 +478,9 @@ var prices = Table.builder("Component", "Old price", "New price")
 var letter = Letter.builder().body("New prices:").table(prices).build();
 ```
 
-Column weights are positive proportions, not millimeters. Every row must match the header column count. At least one body row is required. The table fills its available region width and keeps native selectable text. Its optional header repeats when the table spans pages.
+Column weights are positive proportions, not millimeters. Every physical row must cover the column grid exactly, including cells continued by row spans. At least one body row is required. The table fills its available region width and keeps native selectable text. Its optional header repeats when the table spans pages.
 
-Cells have 1 mm padding and a thin white grid. Cell paragraph spacing is fixed at zero; table block spacing controls space around the table. Long tables paginate; rows stay together when possible. There are no row spans, column spans, nested blocks or inline images in cells.
+Cells default to 1 mm padding, white 0.25 pt borders and middle vertical alignment. Plain cell paragraph spacing defaults to zero; rich blocks can override spacing. Long tables paginate, repeating their header. Rows prefer staying together when they fit. See the rich-cell and row-policy options below.
 
 For per-cell styling, instantiate `TableCell(runs, style, backgroundColor)` and `TableBlock(columnWeights, header, rows, style)`. An empty header list produces a headerless advanced table. The convenience `Table.builder(...)` always defines a header.
 
@@ -428,6 +499,54 @@ For per-cell styling, instantiate `TableCell(runs, style, backgroundColor)` and 
 
 Text/background styling inherits from table to section to row to cell. One header row is supported. Place all table text inside `td` or `th`; structural text between rows/cells is an error.
 
+### Rich cells, spans and appearance
+
+```java
+import com.nsdev.lettergenerator.model.table.Border;
+import com.nsdev.lettergenerator.model.table.BorderStyle;
+import com.nsdev.lettergenerator.model.table.CellAppearance;
+import com.nsdev.lettergenerator.model.table.Padding;
+import com.nsdev.lettergenerator.model.table.TableCell;
+import com.nsdev.lettergenerator.model.table.VerticalAlignment;
+import com.nsdev.lettergenerator.model.layout.Keep;
+
+var table = Table.builder("Item", "Description", "Amount")
+    .cellAppearance(new CellAppearance(
+        new Border(0.5, BorderStyle.SOLID, "#B8C9CF"),
+        Padding.uniform(2), VerticalAlignment.TOP, null))
+    .headerCells(TableCell.text("Details").span(2, 1), TableCell.text("Amount"))
+    .rowCells(TableCell.content(List.of(descriptionParagraph, imageBlock)).span(2, 1),
+              TableCell.text("EUR 25.00"))
+    .rowKeepTogether(Keep.PREFER)
+    .build();
+```
+
+Use `TableCell.text(...)` for inline content or `TableCell.content(List<Block>)` for paragraphs, headings, nested lists, images and layout containers. These forms are exclusive. `content(List.of())` is an empty visual cell. `span(columns, rows)`, `withStyle(style)` and `withAppearance(appearance)` return immutable copies. Cell images use the merged width after padding and borders; oversized explicit images are rejected. Nested tables and page breaks are rejected, including inside components/groups.
+
+Every row must cover the physical column grid exactly. A cell starts at the next unoccupied column. Continuing row spans supply their occupied columns; omit those cells from later rows. An empty row is valid when previous spans cover all columns. Column weights still describe physical columns. Spans cannot overlap or extend beyond a section; the single repeating header row cannot span into body rows. Fully covered continuation rows have no independent height and are collapsed for native FO rendering.
+
+Appearance order is legacy defaults, table `cellAppearance`, cell `appearance`, then legacy cell `backgroundColor`. Borders are uniform on four edges and measured in points; padding is top/right/bottom/left in millimeters. Alignment is TOP, MIDDLE or BOTTOM. Null properties inherit independently; `Border.NONE` and `Padding.uniform(0)` are explicit overrides. Background null inherits; transparency overrides and per-edge border styles are not currently exposed.
+
+```html
+<table column-weights="2,1,1" row-keep="prefer"
+       style="border:0.5pt solid #B8C9CF;padding:2mm;vertical-align:top">
+  <thead><tr><th colspan="2">Details</th><th>Amount</th></tr></thead>
+  <tbody keep-together="always">
+    <tr row-keep="always"><td rowspan="2"><p>Two-row description</p></td>
+      <td>First value</td><td>EUR 10.00</td></tr>
+    <tr><td>Second value</td><td>EUR 15.00</td></tr>
+  </tbody>
+</table>
+```
+
+Table, section, row and cell appearance inherits toward cells. `padding` accepts one, two (vertical/horizontal), or four lengths; `border` accepts `none` or `width style color`, where style is solid, dashed, dotted or none. `vertical-align` accepts top/middle/bottom. `colspan` and `rowspan` are positive integers.
+
+### Row splitting and row groups
+
+`rowKeepTogether(Keep.AUTO)` allows native row splitting; PREFER is the default and ALWAYS strongly keeps each row. `rowPolicy(new TableRowPolicy(rowIndex, keepTogether, keepWithNext))` overrides a zero-based **body** row. `rowGroup(new TableRowGroup(startRow, rowCount, keepTogether))` requests that a contiguous set of body rows travel together. Groups must be disjoint and in range; their stronger keep takes precedence over weaker row policies. Headers use the table's default row keep and repeat after page breaks.
+
+The HTML equivalents are table/tr `row-keep`, tr `keep-with-next`, and tbody `keep-together` attributes, each taking auto/prefer/always. Cell or rich-block keeps can additionally constrain splitting. FOP may reject an oversized row/group with a strong keep; row splitting with merged cells remains subject to native engine limits.
+
 ### Lists
 
 ```java
@@ -436,11 +555,19 @@ var letter = Letter.builder()
     .build();
 ```
 
-Use `ul` for bullets or `ol` for numbering. Each `li` contains text and inline formatting, not nested block elements/lists. Item margins are unsupported; style the surrounding list. Typed construction uses `ListBlock(items, ordered, style)` where each item is a list of `TextRun`.
+Use `ul` for bullets or `ol` for numbering. An `li` contains inline text followed by optional nested `ul`/`ol` children. Each nested list indents relative to its parent and numbers independently from one. Put item text before child lists; arbitrary paragraph/table/image blocks within items remain unsupported. Item margins are unsupported; style the surrounding list.
+
+Typed flat lists retain `ListBlock(items, ordered, style)`, where each item is a list of `TextRun`. Hierarchical lists use `ListBlock.nested(List<ListItem>, ordered, style)` and `new ListItem(runs, children)`. `children` is a list of child `ListBlock` values. JSON uses `contentItems` for hierarchical items and `items` for flat items; exactly one form must be present.
 
 ## 10. Images and named assets
 
-The supported image formats are PNG and JPEG. Image bytes are copied, format/MIME is checked, and aspect ratio is retained within the requested box. SVG, data URLs, remote image URLs and image paths inside markup are unsupported.
+The supported image formats are PNG, JPEG and **static SVG** (`image/svg+xml`). Existing image entry points accept all three: body, table cells, positioned content, header, footer, logo, signature and image watermark. Image bytes are copied, format/MIME is checked, and aspect ratio is retained within the requested box. Data URLs, remote image URLs and image paths inside markup remain unsupported; resolve trusted paths in Java or supply named byte assets.
+
+SVG requires the SVG namespace and positive finite intrinsic dimensions, or a usable `viewBox`. Absolute SVG dimensions support px/mm/cm/in/pt/pc. Relative/percentage viewport lengths are unsupported; omit those dimensions and provide a valid viewBox instead. Static shapes, text, groups, local `use` references, gradients, clipping, masks and patterns are accepted. Scripts, animation, filters, `foreignObject`, embedded/external images, stylesheets/imports, entities/DTDs, processing instructions and external resource references are rejected before rendering. URL references must be local fragments. SVG is limited to 2 MB, 10,000 XML nodes, depth 64 and a bounded local-reference expansion. Unusual intrinsic dimensions outside the documented supported geometry fail rather than overflow the fitting calculation.
+
+Ordinary SVG geometry goes through native FOP/Batik PDF rendering, retaining vectors where supported; some paint effects may be rasterized by the renderer. SVG watermarks use a bounded PNG fallback at 150 dpi with a maximum side of 2048 pixels. PNG/JPEG handling is retained.
+
+Use `image.withAltText("Company logo")`, or `<img ... alt="Company logo">`, to supply an image description for tagged output. Descriptions survive ordinary theme preparation and image refitting.
 
 Full template or fragment:
 
@@ -552,13 +679,13 @@ var letter = Letter.template(templateText)
 byte[] pdf = new LetterPdfGenerator().generate(letter);
 ```
 
-Exactly one `letter` root and one `main` are required. Optional regions are one each of `header`, `footer`, `signature`, `logo`, and `watermark`. Region order in the source does not change their role. Body block order is preserved. A logo region contains one `img`; watermark syntax is described below.
+Exactly one `letter` root and one `main` are required. Optional regions include `header`, `footer`, `signature`, `logo`, `watermark` and the semantic letter parts described in [section 26](#26-semantic-letter-parts-and-address-layouts). Region order in the source does not change their role. Body block order is preserved. A logo region contains one `img`; watermark syntax is described below.
 
 ### Substitution rules
 
 The integrated API uses Apache Commons Text `StringSubstitutor` with **only your map** and `${keyToReplace}` syntax. It parses the template first, then replaces text/attribute values. A replacement like `Ana <strong> & ${other}` remains literal data, including the `${other}` substring. No recursive value substitution or markup injection occurs. Tag and attribute names cannot be generated through placeholders.
 
-Missing keys fail with `InvalidLetterException`; no silent empty replacement is applied. Default-value expressions such as `${name:-fallback}`, nested variable names, environment/system-property lookups and expression evaluation are not supported. Supply strings, numbers, booleans or characters; format dates, money and locale-dependent numbers before calling the library. Map values and asset bytes are snapshotted when supplied.
+Missing keys fail with `InvalidLetterException`; no silent empty replacement is applied. Default-value expressions such as `${name:-fallback}`, nested variable names, environment/system-property lookups and expression evaluation are not supported. Supply supported scalars, immutable temporal values and nested maps/lists; use `param` with explicit locale settings for dates, money and numbers. Map values and asset bytes are snapshotted when supplied. [Section 28](#28-typed-data-conditions-and-repeated-rows) specifies typed data, scope and directive rules.
 
 For CSS placeholders use a property value, for example `style="font-size:${size}"` with `size="12pt"`. A replacement cannot introduce a semicolon and another declaration. Numeric layout attributes remain numeric after replacement.
 
@@ -570,7 +697,7 @@ var letter = Letter.fromHtml(resolvedMarkup).asset("logo", logoBytes).build();
 
 This performs no replacement pass, and `.values(...)` on this builder throws an argument error. If your application uses StringSubstitutor before parsing, it is responsible for escaping replacement values in their HTML context. Prefer the integrated `.template(...).values(...)` path for ordinary scalar data.
 
-Templates support scalar placeholders, without loops or conditionals. Use the fluent API to assemble content such as tables with a variable number of rows. Pass scalar text through `.values(...)` rather than concatenating unescaped values into markup.
+Templates support finite named-boolean conditions and list repetition through the integrated `Letter.template(...)` path; see [section 28](#28-typed-data-conditions-and-repeated-rows). Pass bound values through `.values(...)` rather than concatenating unescaped data into markup.
 
 ### Supported markup
 
@@ -582,15 +709,21 @@ Templates support scalar placeholders, without loops or conditionals. Use the fl
 | `br` | Line change |
 | `a href="..."` | http/https/mailto link; optional `title` attribute |
 | `ul`, `ol`, `li` | Text-only list items with inline formatting |
-| `table`, `thead`, `tbody`, `tr`, `th`, `td` | Rectangular text tables |
+| `table`, `thead`, `tbody`, `tr`, `th`, `td` | Merged tables with text or block content in cells |
+| `group` | Styled group with a soft keep; configurable with `keep-together` |
+| `component ref="name"` | Include registered reusable blocks; use a paired closing tag |
+| `page-number`, `page-count` | Current and total pages; empty elements with paired closing tags |
 | `img` | Standalone named asset; optional `alt`, `width`, `height` |
 | `page-break` | Body-only explicit page transition; paired closing tag |
+| `param` | Empty void tag for formatted typed values; no closing tag |
+| `if`, `else` | Named-boolean branches outside tables; template mode only |
+| `sender`, `date`, `recipient`, `reference`, `subject`, `salutation`, `closing` | Top-level semantic letter regions |
 
-Supported CSS is inline through `style`: `font-family`, `font-size`, `color`, `font-weight`, `font-style`, `text-decoration`, `text-align`, unitless `line-height`, `margin-top`, `margin-bottom`, table `background-color`, and image `width`/`height`.
+Supported CSS is inline through `style`: `font-family`, `font-size`, `color`, `font-weight`, `font-style`, `text-decoration`, `text-align`, unitless `line-height`, `margin-top`, `margin-bottom`, table `background-color`, image `width`/`height`, page `keep-together`/`keep-with-next`/`widows`/`orphans`, and table/cell `padding`/`border`/`vertical-align`.
 
 Font sizes accept pt/mm/px. Margins accept mm/pt/px and unitless zero. Colors accept `#RGB`, `#RRGGBB`, black, white, gray/grey, red, green, blue, navy and teal. Font weight accepts normal/bold/400/700; font style normal/italic; decoration none/underline. A font family names one available family, not a browser-style fallback list.
 
-Root styles provide text/paragraph defaults. Region/group text properties inherit; put margins on individual paragraphs/text blocks. Background colors are supported on table elements, not ordinary text spans/paragraphs. Unsupported tags, attributes, styles and HTML error recovery fail with a location. Use letter markup without `html`, `head` or `body` wrappers, scripts, classes, stylesheets or browser positioning rules. This is a letter document format with an HTML vocabulary, not a browser renderer.
+Root styles provide text/paragraph defaults. Styled containers preserve inherited scopes; HTML compilation may therefore produce transparent AUTO groups in the shared model. Region/group text properties inherit; put margins on individual paragraphs/text blocks. Background colors are supported on table elements, not ordinary text spans/paragraphs. Unsupported tags, attributes, styles and HTML error recovery fail with a location. Use letter markup without `html`, `head` or `body` wrappers, scripts, classes, stylesheets or browser positioning rules. This is a letter document format with an HTML vocabulary, not a browser renderer.
 
 ### Root and region attributes
 
@@ -600,11 +733,18 @@ Root styles provide text/paragraph defaults. Region/group text properties inheri
 | `letter` | `margins-mm` | Uniform margins, default 20 |
 | `letter` | `header-height-mm` | Default header content height, 25 |
 | `letter` | `footer-height-mm` | Footer content height, 15 |
+| `letter` | `page-width-mm`, `page-height-mm` | Paired positive custom paper dimensions |
+| `letter` | `orientation` | PORTRAIT or LANDSCAPE |
+| `letter` | `language-tag`, `date-pattern`, `date-style`, `currency`, `zone-id` | Literal explicit locale configuration; see section 27 |
 | `signature` | `placement` | flow (default) or bottom-last, case-insensitive |
 | `signature` | `height-mm` | Signature content height, default 20; reserved on the last page for bottom-last |
+| `header`, `footer` | `pages` | all (fallback), first or following; default all |
+| Content elements | `style-name` | Reference a named theme style below local CSS |
 | `header` | `align` | left, center or right; box and default content alignment |
 | `header` | `width-mm`, `height-mm` | Optional preset box dimensions |
 | `header` | `x-mm`, `y-mm`, `width-mm`, `height-mm` together | Exact box relative to inner-page origin |
+
+Root region tags may appear in any order; their child content keeps its source order.
 
 The full template format currently offers uniform root margins. Use the fluent/advanced Java model when independent margin values are required.
 
@@ -679,7 +819,7 @@ With HTML templates, use scalar geometry placeholders:
 </letter>
 ```
 
-Supply those keys along with recipient data in `.values(...)`. Use separate placeholders for address lines because template whitespace follows HTML rules. Format currency, dates, decimal separators and salutation in the application using the intended locale. Choose/register fonts that cover the actual language.
+Supply those keys along with recipient data in `.values(...)`. Use separate placeholders for address lines because template whitespace follows HTML rules. Use explicit `LocaleSettings` with `param` for currency, dates and decimal separators; application text such as salutations remains caller-supplied. Choose/register fonts that cover the actual language.
 
 ## 15. Watermarks
 
@@ -776,7 +916,7 @@ Minimal JSON:
 }
 ```
 
-JSON maps to the immutable model, not the HTML template format. It has no placeholder substitution pass. Enums use uppercase names. Block `type` values are `paragraph`, `heading`, `list`, `image`, `table`, `pageBreak`; watermark `kind` is `text` or `image`. Image `data` is Base64. Unknown fields/discriminators, duplicate keys, malformed JSON, trailing documents, scalar coercion, numeric enum ordinals and fractional schema versions are rejected.
+`Letter.fromJson(json)` parses JSON into the shared model for `validate(...)`, copy methods or `render(...)`. `generator.renderJson(json[, options])` returns the same rendering report and profile choices as the other APIs. `generateJson(json)` retains the byte-only standard path. JSON maps to the immutable model, not the HTML template format. It has no placeholder substitution pass. Enums use uppercase names. Block `type` values are `paragraph`, `heading`, `list`, `image`, `table`, `pageBreak`, `group`, `component`, `letterPart`, `canvas`, `columns` and `box`; watermark `kind` is `text` or `image`. Image `data` is Base64. Unknown fields/discriminators, duplicate keys, malformed JSON, trailing documents, scalar coercion, numeric enum ordinals and fractional schema versions are rejected.
 
 Optional model fields may be omitted or null and use their documented defaults. Required fields produce a field-path error. See the [model constructor reference](#21-public-api-reference) and public records for full structured input. Do not treat external Java class names as JSON discriminators.
 
@@ -938,20 +1078,26 @@ Public packages start with `com.nsdev.lettergenerator`. The `internal` subtree i
 | `Letter.builder()` | New mutable letter builder |
 | `Letter.template(String)` | New template builder with map substitution |
 | `Letter.fromHtml(String)` | New template builder for already-resolved markup |
+| `Letter.fromJson(String)` | Strict JSON into the shared immutable model |
 | `Letter.PAGE_BREAK` | Form-feed marker for plain body strings |
 | `new LetterPdfGenerator()` | Reusable generator with built-in fonts |
 | `LetterPdfGenerator.builder()` | Optional custom-font configuration |
 | `generator.generate(LetterDocument)` | Validate/render and return complete PDF bytes |
 | `generator.generateJson(String)` | Parse strict JSON, validate/render |
+| `generator.renderJson(String[, RenderOptions])` | JSON rendering with reports and per-call output choices |
+| `generator.validate(LetterDocument)` | Inspect declared model constraints without PDF layout |
+| `generator.render(LetterDocument[, RenderOptions])` | PDF bytes, actual page count, diagnostics and optional debug geometry |
 | `Table.builder(String... headers)` | Convenience table builder |
 
-Generator builder methods: `registerFont(String, FontVariant, Path)`, `registerClasspathFont(String, FontVariant, String)`, `build()`.
+Generator builder methods: `registerFont(String, FontVariant, Path)`, `registerClasspathFont(String, FontVariant, String)`, `hyphenationPatterns(String languageTag, byte[] trustedXml)`, `build()`.
 
 ### LetterBuilder
 
 | Method | Effect |
 | --- | --- |
 | `page(PageSize)` | Select A4 or LETTER |
+| `pageSizeMm(double, double)`, `orientation(Orientation)`, `landscape()` | Custom paper and orientation |
+| `canvas(CanvasBlock)` | Append an indivisible positioned canvas |
 | `marginsMm(double)`, `margins(Margins)` | Uniform or independent page margins |
 | `style(Style)` | Document text/paragraph defaults |
 | `body(String...)` | Append literal plain paragraphs/line changes/page markers |
@@ -959,12 +1105,17 @@ Generator builder methods: `registerFont(String, FontVariant, Path)`, `registerC
 | `pageBreak()` | Append a body page transition |
 | `table(TableBlock)`, `block(Block)` | Append typed content |
 | `bodyHtml(String)` | Append formatted fragment |
+| `group(String...)`, `group(Block...)` | Append a softly kept content group |
+| `theme(LetterTheme)`, `component(String, LetterComponent)`, `include(String)` | Theme defaults, reusable registrations and body references |
+| `body/header/footer/signature(LetterComponent)` | Reuse an immutable fragment directly |
 | `header(String...)`, `header(Path/byte[])` | Replace header with text or image |
 | `headerHtml(String)`, `headerBlocks(Block...)` | Replace header with formatted/typed content |
 | `headerAlignment(TextAlign)` | Left/center/right box and default content alignment |
 | `headerWidthMm(double)`, `headerHeightMm(double)` | Set or resize the header box |
 | `headerBoundsMm(double x, double y, double width, double height)` | Exact header box relative to inner-page origin |
 | `headerStyle(Style)` | Header default content style |
+| Header/footer content methods with leading `PageSelector` | Replace content for ALL, FIRST or FOLLOWING |
+| `headerStyle(PageSelector, Style)`, `footerStyle(PageSelector, Style)` | Selection-specific appearance |
 | `footer(String...)`, `footer(Path/byte[])` | Replace footer with text or image |
 | `footerHtml(String)`, `footerBlocks(Block...)` | Replace footer with formatted/typed content |
 | `footerHeightMm(double)`, `footerStyle(Style)` | Footer size/default style |
@@ -976,6 +1127,12 @@ Generator builder methods: `registerFont(String, FontVariant, Path)`, `registerC
 | `watermark(String/Watermark)` | Set text-default or explicit watermark |
 | `asset(String, Path/byte[])` | Snapshot a named image asset |
 | `fixedElement(FixedElement)` | Append advanced fixed content to configured zones |
+| `sender(Party)`, `recipient(Party)`, `date(LocalDate)` | Replace semantic identity/address/date parts |
+| `subject(String)`, `reference(String, String)`, `salutation(String)`, `closing(String)` | Replace conventionally ordered semantic phrases |
+| `part(LetterElement, List<Block>[, Style])`, `addressLayout(AddressLayout)` | Rich semantic parts and editable address positioning |
+| `locale(LocaleSettings/Locale)`, `settings(DocumentSettings)`, `metadata(DocumentMetadata)` | Explicit language/formatting/document options |
+| `direction(TextDirection)`, `fallbackFonts(String...)`, `hyphenate(boolean)` | Explicit international text layout choices |
+| `attach(PdfAttachment)` | Append an existing PDF after the letter |
 | `build()` | Produce an immutable LetterDocument snapshot |
 
 Configuration calls replace their option; body and advanced fixed-element calls append. Repeated region content calls replace that region. Width/height setters after exact header bounds preserve its x/y. Builders are mutable; use a new instance per concurrent request.
@@ -984,9 +1141,12 @@ Configuration calls replace their option; body and advanced fixed-element calls 
 
 | API | Methods/options |
 | --- | --- |
-| `HtmlLetterBuilder` | `values(Map<String, ?>)`, `asset(String, Path/byte[])`, `build()` |
-| `TableBuilder` | `row(String...)`, `columnWeights(double...)`, `style(Style)`, `headerStyle(Style)`, `headerBackground(String)`, `build()` |
-| `Style.builder()` | Family, size, color, emphasis booleans, alignment, line-height and before/after spacing |
+| `HtmlLetterBuilder` | `values(Map<String, ?>)`, `asset(String, Path/byte[])`, `theme(...)`, `component(...)`, `locale(...)`, `settings(...)`, `compile()`, `validate([generator])`, `build()` |
+| `PreparedLetterTemplate` | `requirements()`, `build()`, `bind(Map<String, ?>)`, `validate([generator])` |
+| `LocaleSettings` | Stable country/date/currency/zone choices; `defaults()`, `locale()` |
+| `ValueFormats` | `format(value, format, pattern, locale, currencyOverride)` |
+| `TableBuilder` | `row(String...)`, `columnWeights(double...)`, `style(Style)`, `headerStyle(Style)`, `headerBackground(String)`, `row(List<TableCell>)`, `rowCells(TableCell...)`, `headerCells(TableCell...)`, `cellAppearance(...)`, `rowKeepTogether(...)`, `rowPolicy(...)`, `rowGroup(...)`, `options(...)`, `build()` |
+| `Style.builder()` | Family, size, color, emphasis booleans, alignment, line-height, before/after spacing, `named(...)`, `keepTogether(...)`, `keepWithNext(...)`, `widows(...)`, `orphans(...)` |
 | `TextSignature.of(String)` | Optional `.style(Style)`, immutable result |
 | `ImageSignature.of(Path/byte[])` | Optional `.sizeMm(width, height)`, immutable result |
 | `TextWatermark.of(String)` | Standard centered text watermark |
@@ -996,33 +1156,42 @@ Configuration calls replace their option; body and advanced fixed-element calls 
 
 | Package/type | Fields in constructor order |
 | --- | --- |
-| `model.LetterDocument` | `schemaVersion, page, defaultStyle, sections, fixedElements, signature, watermark` |
+| `model.LetterDocument` | `schemaVersion, page, defaultStyle, sections, fixedElements, signature, watermark[, theme, components[, settings, attachments]]` |
+| `model.DocumentSettings` | `locale, metadata, direction, fallbackFonts, hyphenate` |
+| `localization.LocaleSettings` | `languageTag[, datePattern, dateStyle, currencyCode, zoneId]` |
+| `letter.Party`, `letter.Address` | `name, organization, address`; `lines` |
+| `model.block.LetterPartBlock` | `element, blocks, style` |
 | `model.Section` | `name, style, blocks` |
-| `model.layout.PageSpec` | `size, marginsMm, topZoneMm, bottomZoneMm, signatureZoneMm` |
+| `model.layout.PageSpec` | `size, marginsMm, topZoneMm, bottomZoneMm, signatureZoneMm[, dimensions, orientation]` |
 | `model.layout.Margins` | `top, right, bottom, left` |
 | `model.layout.Bounds` | `x, y, width, height` |
 | `model.layout.FixedElement` | `id, zone, pages, boundsMm, blocks` |
 | `model.layout.Signature` | `placement, blocks, boundsMm` |
-| `model.block.Paragraph`, `Heading` | `runs, style` |
-| `model.block.ListBlock` | `items, ordered, style` |
-| `model.block.ImageBlock` | `data, mimeType, widthMm, heightMm, style` |
-| `model.block.TableBlock` | `columnWeights, header, rows, style` |
+| `model.block.Paragraph` | `runs, style` |
+| `model.block.Heading` | `runs, style[, semanticStyle]` |
+| `model.block.GroupBlock` | `blocks, style[, defaultStyle]` |
+| `model.block.ComponentBlock` | `name, style` |
+| `model.block.ListBlock` | `items, ordered, style[, contentItems]` |
+| `model.block.ImageBlock` | `data, mimeType, widthMm, heightMm, style[, altText]` |
+| `model.block.TableBlock` | `columnWeights, header, rows, style[, options]` |
 | `model.block.PageBreakBlock` | No fields; body only |
-| `model.table.TableCell` | `runs, style, backgroundColor` |
-| `model.text.TextRun` | `text, style, href` |
-| `model.style.Style` | `fontFamily, fontSizePt, color, bold, italic, underline, textAlign, lineHeight, spaceBeforeMm, spaceAfterMm` |
+| `model.table.TableCell` | Legacy `runs, style, backgroundColor`; rich form also takes `blocks, columnSpan, rowSpan, appearance[, semanticStyle[, defaultAppearance]]` |
+| `model.text.TextRun` | `text, style, href[, pageNumber]`; factories `currentPage()` and `pageCount()` |
+| `model.style.Style` | `fontFamily, fontSizePt, color, bold, italic, underline, textAlign, lineHeight, spaceBeforeMm, spaceAfterMm[, keepTogether, keepWithNext, widows, orphans[, styleName[, baseStyle]]]` |
 | `model.watermark.TextWatermark` | `text, fontFamily, fontSizePt, color, pages, opacity, rotationDegrees` |
 | `model.watermark.ImageWatermark` | `data, mimeType, widthMm, heightMm, pages, opacity, rotationDegrees` |
+
+Bracketed trailing constructor groups are optional overloads; original constructors remain available. `semanticStyle`, cell `defaultAppearance` and group `defaultStyle` preserve lower-priority authoring defaults; ordinary application styling uses `style`.
 
 Use schema version `1`. Null optional style properties inherit. PageSpec null fields select defaults. Sections preserve input order; their names are labels without layout meaning. Every box requires finite nonnegative x/y and positive dimensions. Required content/fields are validated during generation; constructing a record is not a guarantee that it is renderable. Image array data has defensive copying and content-based equality.
 
 ## 22. Supported scope and limits
 
-The supported scope is styled PDF letters with native text, flow pagination, PNG/JPEG content, tables, fixed letter regions, visible signatures and optional text/image watermarks. The library checks geometry, resource references, font variants/glyphs, and rendering overflow, including painted glyph/underline bounds that can exceed logical line boxes. It does not shrink text silently; oversized images and nonbreaking text may require smaller dimensions or different content. It returns no partial PDF on failure.
+The supported scope is styled PDF letters with native text, flow pagination, PNG/JPEG/static SVG content, rich tables, bounded canvases, columns, decorated boxes, nested lists, reusable themes/stationery, fixed letter regions, visible signatures and optional text/image watermarks. Typed HTML templates support finite conditions, repeats and formatted parameters; prepared templates capture immutable authoring configuration. Optional metadata, native tagged/PDF/A output and standard-profile PDF packs are described below. The library checks geometry, resource references, font variants/glyphs, and rendering overflow, including painted glyph/underline bounds that can exceed logical line boxes. It does not shrink text silently; oversized images and nonbreaking text may require smaller dimensions or different content. It returns no partial PDF on failure.
 
-HTML input supports the finite vocabulary above. General CSS/browser layout, arbitrary fonts from template URLs, scripts, classes/stylesheets, SVG, loops, conditionals, nested table blocks/spans, automatic postal-standard compliance, DOCX output, cryptographic signing, automatic page numbers and PDF conformance profiles such as PDF/A are not exposed by this MVP. Use application logic or a future explicit feature for those requirements; do not assume browser behavior.
+HTML input supports the finite vocabulary above. General CSS/browser layout, arbitrary fonts from template URLs, scripts, classes/stylesheets, nested tables, inline images inside text runs, automatic postal-standard compliance, DOCX output and cryptographic signing are not exposed. Tagged output does not claim PDF/UA compliance. PDF/A-2b uses the native renderer and has explicit restrictions; see section 33. Use application logic or a future explicit feature for those requirements; do not assume browser behavior.
 
-For an issue report, include a minimal template/model, scalar values, required font/image assets with permission to share, the Java/library version, and the complete exception including its cause. Use fictional recipient data where possible. `./mvnw clean verify` is the project's full acceptance command; examples and previews are generated under `target`, so clean builds remove and recreate them.
+For an issue report, include a minimal template/model, typed binding data, required font/image assets with permission to share, the Java/library version, and the complete exception including its cause. Use fictional recipient data where possible. `./mvnw clean verify` is the project's full acceptance command; examples and previews are generated under `target`, so clean builds remove and recreate them.
 
 ## 23. Development and code quality
 
@@ -1039,7 +1208,8 @@ The package layout separates responsibilities:
 
 | Package under `com.nsdev.lettergenerator` | Responsibility |
 | --- | --- |
-| root, `builder`, `signature`, `model.*`, `font`, `exception` | Supported application contract |
+| root, `builder`, `signature`, `model.*`, `font`, `exception`, `theme`, `component`, `diagnostics`, `render`, `letter`, `localization`, `template`, `document` | Supported application contract |
+| `internal.composition`, `internal.table` | Theme/component preparation and shared table grid/appearance rules |
 | `internal.builder`, `internal.builder.content` | Builder-specific region assembly and deferred content resolution |
 | `internal.content`, `internal.util` | Shared text/image conversion, immediate argument checks and collection snapshots |
 | `internal.defaults` | Letter and watermark default policies shared across input APIs |
@@ -1048,7 +1218,8 @@ The package layout separates responsibilities:
 | `internal.font`, `internal.style`, `internal.layout` | Immutable font snapshots, inherited styles, dimensions and units |
 | `internal.render.fo` | Structured FO block/style/page-layout serialization |
 | `internal.render.fop` | FOP configuration, diagnostics, glyph-bound checks, resource allowlist and hardened FO transform |
-| `internal.render.watermark` | Optional PDFBox processing |
+| `internal.render.watermark`, `internal.output` | Optional watermarks, output constraints and PDF pack processing |
+| `internal.hyphenation` | Explicit trusted pattern snapshots and native dictionary setup |
 | `internal.render.resource`, `internal.xml` | Private render-resource identifiers and engine-independent XML helpers |
 
 The test suite separates shared fixtures from integration tests. Image records provide byte-content equality/hash codes in addition to defensive copying. Pagination recovery uses typed diagnostics and retries only recoverable body overflow or a missing last-page master. Font, fixed-box, and parsing failures do not trigger a broad retry.
@@ -1056,3 +1227,526 @@ The test suite separates shared fixtures from integration tests. Image records p
 Template compilation delegates each top-level region to a dedicated `TemplateTagHandler`. An immutable registry defines the supported tags and their execution order; handlers receive a fresh compilation context. To extend the library with another top-level tag, implement its handler and register it once. Contributor instructions explain [how to add a template region](CONTRIBUTING.md#adding-a-template-region).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor conventions. User-facing instructions and API examples are maintained in this README. Internal plans and implementation notes are kept locally under the ignored `docs/` directory.
+
+## 24. Reusable themes and components
+
+Supply immutable themes and components per document, and reuse them across requests. Create a new mutable letter builder for each letter.
+
+### Role defaults and named styles
+
+```java
+import com.nsdev.lettergenerator.theme.LetterTheme;
+import com.nsdev.lettergenerator.model.style.Style;
+
+var company = LetterTheme.builder()
+    .body(Style.builder().fontFamily("Helvetica").fontSizePt(11)
+        .color("#24363D").spaceAfterMm(3).build())
+    .heading(Style.builder().fontSizePt(16).bold().build())
+    .header(Style.builder().fontSizePt(10).build())
+    .footer(Style.builder().fontSizePt(8).color("#666666").build())
+    .signature(Style.builder().fontSizePt(11).build())
+    .tableHeader(Style.builder().bold().color("#FFFFFF").build())
+    .named("notice", Style.builder().bold().color("#10384A").build())
+    .named("urgent", Style.builder().named("notice").underline().build())
+    .build();
+
+var letter = Letter.builder()
+    .theme(company)
+    .heading("Confirmation")
+    .bodyHtml("<p style-name='notice'>Your request has been accepted.</p>")
+    .bodyHtml("<p style-name='urgent' style='font-weight:normal'>Please retain this letter.</p>")
+    .build();
+```
+
+The available `StyleRole` values are BODY, HEADING, TABLE, TABLE_HEADER, TABLE_CELL, HEADER, FOOTER and SIGNATURE. `role(role, style)` registers any role; corresponding convenience methods are available on the theme builder. BODY is the fallback for roles without their own properties. Font registration belongs to `LetterPdfGenerator`. Themes select registered families, typography, text colors and block spacing. Reuse `TableOptions`/`CellAppearance` values for table fills, borders and padding; set a suitable header background when choosing a light header text color.
+
+The cascade resolves built-in/semantic defaults, BODY and block-role defaults, contextual header/footer/signature/table-cell defaults, explicit document/section/container properties, a local named style, and finally local properties. Each property inherits separately; explicit false and zero values win. A contextual footer role therefore applies to paragraphs in the footer, and an explicit paragraph style overrides it. Inline text overrides the containing paragraph. Group margins and keeps apply to the group; its typography inherits into children.
+
+Set `.theme(...)` on the builder before `.build()` so the theme participates when convenience defaults are assembled. `LetterDocument.withTheme(...)` is useful for typed models: it preserves styles already stored in the existing snapshot, including defaults materialized by an earlier builder. Changing a theme never mutates previously built documents.
+
+For typed content, set `Style.builder().named("notice").bold(false).build()` on the block or run. For HTML, use `style-name="notice"` plus optional local CSS. Named styles may inherit another named style through `.named(...)`; unknown references, blank names and cycles are errors, including unused registered references. There are no filesystem or URL includes.
+
+### Reuse headers, addresses, signatures and legal text
+
+```java
+import com.nsdev.lettergenerator.component.LetterComponent;
+import com.nsdev.lettergenerator.model.block.ComponentBlock;
+
+var address = LetterComponent.text("Example Company\n100 Example Avenue\nSample City");
+var legal = LetterComponent.text("Example Company | example.invalid");
+var signature = LetterComponent.text("Kind regards,\nCustomer Services");
+
+var letter = Letter.builder()
+    .theme(company)
+    .header(address)
+    .footer(legal)
+    .signature(signature)
+    .component("legalNotice", legal)
+    .body("Dear Alex,")
+    .include("legalNotice")
+    .build();
+```
+
+`LetterComponent.of(Block...)` wraps any supported model content, including styled text, images and tables. `text(String...)` creates one paragraph per argument; a newline stays within that paragraph. Direct `body(component)` groups its content softly; header/footer/signature overloads reuse it in those regions. Use `new ComponentBlock("legalNotice", localStyle)` for a styled named reference anywhere blocks are accepted.
+
+Named references use the document's component map. Components can reference other components; generation rejects unknown names, cycles and content invalid for its final location. A component with a page break cannot be inserted in a table cell or signature. References normally form softly kept groups; the reference's explicit keep can override that policy. Registrations and content lists are snapshotted, and images retain their defensive byte ownership.
+
+```java
+var template = Letter.template("""
+    <letter>
+      <header><component ref="address"></component></header>
+      <main><h1 style-name="notice">Hello ${recipient}</h1>
+        <component ref="legalNotice" style="font-size:9pt"></component></main>
+      <footer><p>Page <page-number></page-number> of <page-count></page-count></p></footer>
+    </letter>
+    """)
+    .theme(company)
+    .component("address", address)
+    .component("legalNotice", legal)
+    .values(Map.of("recipient", "Alex Example"));
+var letter = template.build();
+```
+
+`component` and page-field tags require paired closing tags; they are empty elements in this format, not HTML void tags. `style-name` belongs to content styles; logo wrappers and watermark wrappers require their existing explicit configuration.
+
+### JSON equivalents
+
+JSON carries the same composition values, with enum names in uppercase. This complete example uses a named style and a reusable fragment:
+
+```json
+{
+  "schemaVersion": 1,
+  "theme": {
+    "roles": {"BODY": {"fontSizePt": 11}, "HEADING": {"fontSizePt": 16, "bold": true}},
+    "namedStyles": {"notice": {"color": "#10384A", "bold": true}}
+  },
+  "components": {
+    "legal": {"blocks": [{"type": "paragraph", "runs": [{"text": "Example Company | example.invalid"}]}]}
+  },
+  "sections": [{
+    "name": "Body",
+    "blocks": [
+      {"type": "heading", "runs": [{"text": "Confirmation"}], "style": {"styleName": "notice"}},
+      {"type": "group", "style": {"keepTogether": "ALWAYS"}, "blocks": [
+        {"type": "paragraph", "runs": [{"text": "Dear Alex,"}]},
+        {"type": "component", "name": "legal", "style": {"bold": false}}
+      ]}
+    ]
+  }]
+}
+```
+
+A rich JSON cell uses `blocks` instead of `runs`, with optional `columnSpan`, `rowSpan` and `appearance`. Table `options` holds `cellAppearance`, `rowKeepTogether`, `rowPolicies` and `rowGroups`:
+
+```json
+{
+  "type": "table",
+  "columnWeights": [2, 1],
+  "header": [{"runs": [{"text": "Combined heading"}], "columnSpan": 2}],
+  "rows": [[{"blocks": [{"type": "paragraph", "runs": [{"text": "Rich content"}]}], "columnSpan": 2}]],
+  "options": {
+    "cellAppearance": {
+      "border": {"widthPt": 0.5, "style": "SOLID", "color": "#B8C9CF"},
+      "padding": {"topMm": 2, "rightMm": 2, "bottomMm": 2, "leftMm": 2},
+      "verticalAlignment": "TOP"
+    },
+    "rowKeepTogether": "PREFER",
+    "rowPolicies": [{"rowIndex": 0, "keepTogether": "ALWAYS"}],
+    "rowGroups": [{"startRow": 0, "rowCount": 1, "keepTogether": "PREFER"}]
+  }
+}
+```
+
+## 25. Validate, diagnose and preview layout
+
+### Inspect a template before rendering
+
+```java
+var template = Letter.template(source)
+    .values(Map.of("recipient", "Alex Example"))
+    .asset("logo", logoBytes)
+    .theme(company);
+
+var report = template.validate();
+// Use template.validate(generator) when the application registers custom fonts.
+if (!report.isValid()) {
+    for (var diagnostic : report.diagnostics()) {
+        System.out.println(diagnostic.code() + " | " + diagnostic.path() + " | " + diagnostic.message());
+    }
+}
+```
+
+Inspection parses and binds literal values, then aggregates **missing scalar placeholder occurrences and invalid/missing referenced image assets** in active branches and repeat clones. Directive/parameter failures retain a first-error boundary; see section 29. It does not perform environment/system/URL lookup, recursive replacement or markup injection. Asset errors caused by a missing source variable are not duplicated as missing-asset errors. Once that preflight passes, compilation and semantic validation report the first remaining model error, including registered-font and declared-geometry checks. It generates no FO or final PDF.
+
+`generator.validate(document)` validates a typed, fluent-built or JSON-derived model without running layout. It reports the first semantic input error. Both methods return immutable `ValidationReport` values with `isValid()` and `diagnostics()`. Successful input validation does not establish that text fits, how many pages it requires, or whether the engine can honor every keep.
+
+### Return the PDF and an actual rendering report
+
+```java
+var result = generator.render(template.build());
+Files.write(Path.of("letter.pdf"), result.pdfBytes());
+int actualPages = result.pageCount();
+for (var diagnostic : result.diagnostics()) {
+    System.out.println(diagnostic.code() + ": " + diagnostic.message());
+}
+```
+
+`RenderResult` owns its PDF bytes and returns a defensive copy on access. `pageCount()` is the accepted final count, including any dedicated signature page and appended attachment pages. `parts()` identifies the letter and each attachment range. Ordinary successful rendering usually has no diagnostics. `SIGNATURE_PAGE_RECOVERY` is informational: the bounded retry allocated a final page for the reserved signature zone. Diagnostic fields are `code`, `severity` (ERROR/WARNING/INFO), `phase` (INPUT/LAYOUT), `path` and `message`.
+
+Existing `generate(...)` and `generateJson(...)` retain their byte-array/exception behavior. Invalid inputs still throw `InvalidLetterException`. Rejected layouts still throw `PdfGenerationException` and return no partial PDF. Its `diagnostics()` contains classified layout errors when available (`BODY_OVERFLOW` or `LAYOUT_ERROR`); failures outside those checks can have an empty list, with details retained in the exception cause.
+
+### Debug allocated geometry
+
+```java
+import com.nsdev.lettergenerator.render.RenderOptions;
+
+var debug = generator.render(template.build(), RenderOptions.debugPreview());
+Files.write(Path.of("letter-debug.pdf"), debug.pdfBytes());
+for (var box : debug.debugBoxes()) {
+    System.out.println(box.pageNumber() + " | " + box.kind()
+        + " | " + box.xMm() + ", " + box.yMm() + " mm");
+}
+```
+
+Debug output outlines the inner margin area, allocated body, reserved header/footer zones, fixed content rectangles and final signature box. Coordinates use millimeters from the **physical page's upper-left corner**, with one-based page numbers. The `DECLARED_*` kinds describe allocated rectangles; they are not measurements of individual glyphs or painted image pixels. The overlay adds no text or pages, and normal rendering has an empty `debugBoxes()` list. Debug decoration is for authoring previews; choose ordinary rendering for the delivered letter.
+
+Run `./mvnw test` to generate `target/examples/composition-features.pdf` and `composition-debug.pdf`, plus first-page PNG previews. `CompositionExampleTest` combines themed text, reusable legal content, first/continuation headers, current/total page fields, merged rich cells, row keeps and a bottom-last signature. The four anonymized energy examples remain separate regressions for the original APIs.
+
+## 26. Semantic letter parts and address layouts
+
+Use sender, date, recipient, reference, subject, salutation and closing methods for an ordinary letter. Calls replace the previous value for that role; their call order does not change the conventional display order. Body content still appends in call order.
+
+```java
+import com.nsdev.lettergenerator.letter.Address;
+import com.nsdev.lettergenerator.letter.Party;
+import com.nsdev.lettergenerator.localization.LocaleSettings;
+import java.time.LocalDate;
+
+var letter = Letter.builder()
+    .sender(Party.company("Example Company", Address.of("18 Harbour Road", "Example City EX1 2AB")))
+    .recipient(Party.of("Alex Example", Address.of("24 Sample Lane", "Example Town EX2 3CD")))
+    .date(LocalDate.of(2026, 10, 19))
+    .reference("Account", "EX-1001")
+    .subject("Service renewal confirmation")
+    .salutation("Dear Alex,")
+    .body("Your service has been renewed.")
+    .closing("Kind regards,\nCustomer Services")
+    .locale(new LocaleSettings("en-GB"))
+    .build();
+```
+
+The order is sender, date, recipient, reference, subject, salutation, body, then closing. The subject defaults to bold 14 pt with a keep to the following content. Semantic theme roles are `SENDER`, `DATE`, `RECIPIENT`, `REFERENCE`, `SUBJECT`, `SALUTATION` and `CLOSING`; explicit local styles override those roles. Date formatting uses the **final** builder locale, so setting `.locale(...)` after `.date(...)` is supported. Postal lines retain their supplied order and line breaks; the library does not infer national address rules.
+
+`Party(name, organization, address)` accepts an individual, an organization, or both. `Party.of(name, address)` and `Party.company(organization, address)` are conveniences. A party needs a nonblank name or organization; supplied identity fields and address lines must be nonblank. `Address.of(String...)` snapshots ordered lines. The fluent semantic methods check these inputs during authoring.
+
+For rich content use `.part(LetterElement.SUBJECT, blocks)` or `.part(element, blocks, localStyle)`. The shared typed equivalent is `new LetterPartBlock(element, blocks, style)`. Typed and JSON block lists keep the order the caller supplies; fluent/HTML semantic authoring supplies the conventional ordering. JSON uses the `letterPart` block discriminator:
+
+```json
+{
+  "schemaVersion": 1,
+  "sections": [{"name": "Body", "blocks": [
+    {"type": "letterPart", "element": "SUBJECT", "blocks": [
+      {"type": "paragraph", "runs": [{"text": "Service renewal confirmation"}]}]},
+    {"type": "paragraph", "runs": [{"text": "Your service has been renewed."}]}
+  ]}]
+}
+```
+
+HTML provides optional top-level `<sender>`, `<date>`, `<recipient>`, `<reference>`, `<subject>`, `<salutation>` and `<closing>` regions. Each occurs at most once and accepts supported rich blocks and inline styles. A `main` region remains required. A reference requires a nonblank literal `label`; the compiler inserts a bold label and colon before its content. A date can use an ISO local-date `value` or authored rich content:
+
+```html
+<letter language-tag="en-GB">
+  <sender><p><strong>Example Company</strong><br>18 Harbour Road</p></sender>
+  <date value="2026-10-19"></date>
+  <recipient><p>Alex Example<br>24 Sample Lane</p></recipient>
+  <reference label="Account"><p><em>EX-1001</em></p></reference>
+  <subject>Service renewal confirmation</subject>
+  <salutation>Dear Alex,</salutation>
+  <main><p>Your service has been renewed.</p></main>
+  <closing><p>Kind regards,<br>Customer Services</p></closing>
+</letter>
+```
+
+For an address window, `.addressLayout(AddressLayout.windowEnvelope())` moves configured sender, recipient and date parts into a body canvas. The editable `AddressLayout(senderBounds, recipientBounds, dateBounds, heightMm)` uses millimeters relative to that canvas; a null bound leaves that part in ordinary flow. Positioned IDs are `letter.sender`, `letter.recipient` and `letter.date`. Bounds must fit the final available width and the declared panel height; measure the actual envelope and inspect a printed sample. The preset is an example arrangement, without a postal compliance guarantee.
+
+## 27. Country-aware dates, numbers and currencies
+
+`LocaleSettings` makes formatting explicit and deterministic. Defaults are `en-GB`, localized `LONG` dates and `UTC`; the JVM's default locale and time zone are not consulted. Language selects formatting conventions, without translating application text.
+
+```java
+import com.nsdev.lettergenerator.localization.LocaleSettings;
+import com.nsdev.lettergenerator.localization.ValueFormats;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.FormatStyle;
+
+var british = new LocaleSettings("en-GB");
+var american = new LocaleSettings("en-US");
+var portuguese = new LocaleSettings("pt-PT", "dd/MM/uuuu", FormatStyle.LONG, "EUR", "Europe/Lisbon");
+
+String ukDate = ValueFormats.format(LocalDate.of(2026, 10, 19), "date", null, british, null);
+// 19 October 2026
+String usDate = ValueFormats.format(LocalDate.of(2026, 10, 19), "date", null, american, null);
+// October 19, 2026
+String amount = ValueFormats.format(new BigDecimal("1234.50"), "currency", null, american, "USD");
+// $1,234.50
+```
+
+The full constructor is `LocaleSettings(languageTag, datePattern, dateStyle, currencyCode, zoneId)`. Tags use BCP 47; currencies use ISO codes; zones use Java `ZoneId` names. A configured `datePattern` takes precedence over `dateStyle`. Currency defaults to the locale's country; supply a code when the language tag has no country or a different currency is required. Invalid tags, patterns, currencies and zones fail during configuration or formatting.
+
+`ValueFormats.format(value, format, pattern, locale, currencyOverride)` accepts only `text`, `date`, `number` and `currency` formats. A null format means literal text. Date patterns use Java `DateTimeFormatter`; numeric patterns use `DecimalFormat`, with symbols from the selected locale. A per-call pattern overrides the configured date pattern. Numeric formatting requires an actual finite number; it does not parse a numeric string. Date formatting requires an appropriate temporal value; it does not parse a date string. `Instant` values resolve in the selected zone. Patterns requesting fields absent from a supplied temporal value fail. Text formatting does not accept pattern or currency options.
+
+Use `.locale(LocaleSettings)` on either builder, or `.locale(Locale)` on `LetterBuilder`. Typed/JSON documents carry `settings.locale`:
+
+```json
+{
+  "schemaVersion": 1,
+  "settings": {"locale": {"languageTag": "pt-PT", "datePattern": "dd/MM/uuuu", "currencyCode": "EUR", "zoneId": "Europe/Lisbon"}},
+  "sections": [{"name": "Body", "blocks": [
+    {"type": "paragraph", "runs": [{"text": "Correspondência de exemplo"}]}
+  ]}]
+}
+```
+
+HTML root attributes are `language-tag`, `date-pattern`, `date-style` (`FULL`, `LONG`, `MEDIUM`, `SHORT`), `currency` and `zone-id`. Explicit root formatting options override the corresponding builder locale fields. Supply those locale attributes as literal configuration. The document's language also comes from `settings.locale.languageTag`; font coverage and direction remain separate document settings.
+
+## 28. Typed data, conditions and repeated rows
+
+`.values(Map<String, ?>)` owns nested maps and lists immediately. Accepted leaf values are strings/character sequences, characters, booleans, byte/short/int/long values, `BigInteger`, `BigDecimal`, finite floats/doubles, and immutable `LocalDate`, `LocalTime`, `LocalDateTime`, `OffsetDateTime`, `OffsetTime`, `ZonedDateTime` or `Instant` values. Character sequences become strings. Null values, blank/non-string map keys, object cycles, arbitrary objects, bean reflection, arrays and unsupported number implementations fail with the input data path.
+
+`${customer.name}` resolves a nested map value. At each map level, an exact literal dotted key wins over splitting that key into nested lookups: `"customer.name"` can be supplied directly. `${key}` remains a literal text substitution; use `param` for formatting:
+
+```html
+<letter language-tag="en-GB" currency="EUR">
+  <main>
+    <p>Hello ${customer.name}. Your appointment is <param key="appointment" format="date">.</p>
+    <p>Balance: <param key="balance" format="currency">.</p>
+    <p>Exact decimal format: <param key="balance" format="number" pattern="#,##0.00">.</p>
+    <if flag="overdue">
+      <p>Please contact us about this balance.</p>
+      <else><p>Thank you for keeping your account up to date.</p></else>
+    </if>
+    <table column-weights="3,1">
+      <thead><tr><th>Service</th><th>Amount</th></tr></thead>
+      <tbody><tr data-each="items" data-as="item">
+        <td>${item.description}</td><td><param key="item.amount" format="currency"></td>
+      </tr></tbody>
+    </table>
+    <p data-if="showContact">Contact ${contact} for help.</p>
+  </main>
+</letter>
+```
+
+```java
+var template = Letter.template(source).values(Map.of(
+    "customer", Map.of("name", "Alex Example"),
+    "appointment", LocalDate.of(2026, 10, 19),
+    "balance", new BigDecimal("29.75"),
+    "overdue", false,
+    "items", List.of(
+        Map.of("description", "Home service", "amount", new BigDecimal("24.50")),
+        Map.of("description", "Additional support", "amount", new BigDecimal("5.25"))),
+    "showContact", false));
+var letter = template.build();
+```
+
+`param` is an **empty HTML void element**: use `<param ...>` or `<param .../>`, without `</param>`. Its required `key` selects a value; optional `format`, `pattern` and `currency` select the finite formatting rules above. Put styling on an enclosing `span` or `strong`, because the parameter itself becomes one literal text node.
+
+| Directive | Exact behavior |
+| --- | --- |
+| `<if flag="name">...<else>...</else></if>` | Requires a named boolean; one optional direct `else`, last in the wrapper |
+| `data-if="name"` | Removes that element when its named boolean is false |
+| `data-each="path" data-as="item"` | Repeats trusted block/row markup once for each list item, in order |
+| `${item.field}` | Resolves the current repeat alias; outer aliases remain available in nested repeats |
+
+Conditions accept actual booleans, without expressions, negation or string truthiness. Use `data-if` on rows/cells inside tables; `if` wrappers are supported outside tables. Repetition supports rows and ordinary blocks such as paragraphs, `div`, lists, tables, images, canvases and boxes; it does not repeat letter regions or table structural containers. `data-as` requires a simple alias matching `[A-Za-z_][A-Za-z0-9_]*` and is valid only with `data-each`. On a node with both repeat and condition directives, the list is expanded first and the condition resolves inside each local scope.
+
+A nested alias shadows the same outer/root name only for its cloned subtree. After that subtree, the outer binding is retained. Bound strings never become tags, attributes, directives or recursive placeholders. CSS property names stay literal; substituted CSS values cannot introduce another declaration.
+
+Missing selected values fail with a template selector path. Missing conditions/collections also fail; an empty list emits no clones, a false condition emits no selected content, and unused branches do not require their bindings or assets. A blank string stays blank; it is not a missing key. Maps/lists cannot be printed as scalar text. The final document must still contain valid body content, and a repeated table must still satisfy ordinary table validation.
+
+Directives run only through `Letter.template(...)`. `Letter.fromHtml(...)` expects resolved supported markup and leaves `${literal}` text intact; it does not evaluate directives. The compiled output is the same ordinary immutable block model used by typed Java, fluent Java and JSON.
+
+## 29. Prepare templates once and inspect their contracts
+
+Call `.compile()` after configuring a template's assets, theme, components, locale and optional default values. It parses and captures an immutable source prototype. Each subsequent build/bind clones that prototype and owns a fresh traversal and model; reuse one prepared template concurrently.
+
+```java
+import com.nsdev.lettergenerator.template.PreparedLetterTemplate;
+
+PreparedLetterTemplate prepared = Letter.template(
+    "<letter><main><p>Hello ${name}.</p></main></letter>")
+    .values(Map.of("name", "Alex Example"))
+    .compile();
+
+var first = prepared.build(); // Uses captured default bindings.
+var second = prepared.bind(Map.of("name", "Sam Example")); // Replaces the whole binding map for this call.
+byte[] firstPdf = generator.generate(first);
+byte[] secondPdf = generator.generate(second);
+```
+
+Later changes to the original builder, data maps/lists or asset byte arrays do not change a prepared template. Theme and component configuration follow the same shared preparation rules as ordinary `.build()`. Parsing is reused; binding, model validation and PDF layout still happen for each document. Builders remain mutable and should not be shared concurrently. A prepared `Letter.fromHtml(...).compile()` supports `.build()`, while `.bind(...)` rejects values because substitution is disabled.
+
+`prepared.requirements()` returns immutable occurrence lists: `variables()`, `flags()`, `collections()`, `assets()`, `styles()` and `components()`. Every `TemplateRequirement` contains `name()` and a source selector `path()`, including an attribute suffix where relevant. Repeated occurrences are retained. `variables` includes `${...}` placeholders and `param` keys; `assets` includes literal `asset:name` image references. Dynamic references retain the original placeholder text. The manifest includes conditional branches and scoped alias paths, so it is a syntactic inventory rather than a statement that every name must be supplied at the root for every binding.
+
+`prepared.validate([generator])` inspects the captured default binding/configuration without PDF layout. For another binding, use `generator.validate(prepared.bind(values))`. Inspection aggregates missing scalar placeholder occurrences in active branches/repeat clones and independent asset errors. Missing directive paths, parameter formatting failures and the first remaining semantic model error stop that phase with a located diagnostic. Success does not establish final content fit.
+
+Run `V1LayoutExampleTest` for `target/examples/v1-layout-pack.pdf` and its PNG preview: a two-page letter with SVG stationery, positioned addresses, columns, nested lists, a decorated notice, a bottom-last signature and an appended PDF. It also renders the model through JSON and checks identical extracted content.
+
+Run `V1AuthoringExampleTest` to produce `target/examples/v1-authoring.pdf` and `v1-authoring.png`. The example combines semantic regions, deferred/localized dates, formatted amounts, a repeated table, boolean branches and repeated binding from one prepared template. `PreparedTemplateTest` also exercises concurrent independent bindings.
+
+
+## 30. Company stationery and table appearance
+
+A theme combines typography with reusable stationery and table appearance. All four input APIs use the same preparation step. Explicit local values override shared defaults; `false`, zero padding, `Border.NONE` and `Keep.AUTO` are deliberate values.
+
+```java
+import com.nsdev.lettergenerator.theme.Stationery;
+import com.nsdev.lettergenerator.theme.TableAppearance;
+import com.nsdev.lettergenerator.model.table.CellAppearance;
+import com.nsdev.lettergenerator.model.table.Padding;
+import com.nsdev.lettergenerator.model.layout.Keep;
+
+var stationery = Stationery.builder()
+    .header("Example Company")
+    .headerAlignment(TextAlign.RIGHT)
+    .footerHtml("<p><strong>Example Company</strong> — Customer services</p>")
+    .build();
+var company = LetterTheme.builder()
+    .body(Style.builder().fontSizePt(11).color("#243746").build())
+    .role(StyleRole.SUBJECT, Style.builder().fontSizePt(16).bold().build())
+    .tableAppearance(new TableAppearance(
+        new CellAppearance(null, Padding.uniform(2), null, "#F3F5F7"),
+        new CellAppearance(null, null, null, "#10384A"),
+        Keep.PREFER))
+    .stationery(stationery)
+    .build();
+
+var letter = Letter.builder().theme(company).subject("Account update").body("Your update...").build();
+var fromHtml = Letter.fromHtml("<letter><main>Your update...</main></letter>").theme(company).build();
+```
+
+`StationeryBuilder` uses ordinary letter region fitting and positioning. Configure `page(...)` and `margins(...)` for the intended sheet. `headerBounds(Bounds)` is relative to the inner page; `headerHeightMm`, `footerHeightMm`, `headerStyle`, `footerStyle`, `asset`, `logo` and rich `header(PageSelector, Block...)` / `footer(PageSelector, Block...)` support styled content and image blocks. An image footer can also use `asset("footer", bytes).footerHtml("<img src='asset:footer'>")`. Build separate stationery values when paper/margins or country layouts differ. Explicit geometry is checked against the final letter; inherited stationery does not silently rescale.
+
+`new Stationery(elements, topZoneMm, bottomZoneMm)` is the typed/JSON form. Letter-local fixed elements replace inherited elements with the same stable ID. Generated IDs include `letter.header`, `letter.footer` and `letter.logo`; page variants add suffixes such as `.first` and `.following`. Other inherited regions remain. Top/bottom reservations use the larger configured height, so changing a local header cannot accidentally reclaim inherited footer/body space.
+
+`TableAppearance(cells, header, rowKeepTogether)` sits below explicit table options and cell appearance. Header defaults additionally overlay common cell defaults; the fluent table's builtin header fill is a fallback rather than an explicit local override. `headerBackground(...)` is explicit and wins. Theme row defaults do not replace row-specific policies or groups. Typography still uses `TABLE`, `TABLE_HEADER` and `TABLE_CELL` roles.
+
+JSON places these values under `theme.tableAppearance` and `theme.stationery`. Semantic roles additionally include `SENDER`, `RECIPIENT`, `DATE`, `SUBJECT`, `REFERENCE`, `SALUTATION` and `CLOSING`. `CompleteThemeFeaturesTest` verifies table appearance and stationery through typed Java, fluent Java, JSON and HTML.
+
+## 31. Canvases, columns, boxes and custom paper
+
+Use ordinary body flow for text that should paginate. Use a canvas when an address panel, reference field or other region needs explicit coordinates. A canvas consumes a fixed height in flow and moves as one indivisible unit. Coordinates are millimeters relative to its upper-left corner. Stable element IDs and explicit bounds also make this model suitable for a future visual editor; the library currently provides rendering and model data.
+
+```java
+import com.nsdev.lettergenerator.Canvas;
+import com.nsdev.lettergenerator.model.layout.Bounds;
+
+var panel = Canvas.builder(170, 70)
+    .text("recipient", new Bounds(0, 25, 80, 35), "Alex Example\n200 Sample Street")
+    .text("reference", new Bounds(100, 0, 60, 20), "Account EX-1001")
+    .build();
+var letter = Letter.builder().canvas(panel).body("Content follows the panel.").build();
+```
+
+`CanvasBuilder.at(id, Bounds, Block...)` accepts any supported rich blocks. The coordinate overload accepts `id, x, y, width, height, blocks`. `element(PositionedContent)` retains a preconstructed element. Styles are available on the canvas and each element. Every canvas requires unique nonblank IDs, positive finite dimensions and boxes wholly within its declared bounds. Elements paint in list order; overlap is intentional and allowed within a canvas. Element content must fit its box. Oversized canvases and painted content overflow fail rather than shrink or clip. Explicit page breaks are forbidden inside positioned elements.
+
+```html
+<canvas width-mm="170" height-mm="70">
+  <box id="recipient" x-mm="0" y-mm="25" width-mm="80" height-mm="35">
+    <p>Alex Example<br>200 Sample Street</p>
+  </box>
+  <box id="reference" x-mm="100" y-mm="0" width-mm="60" height-mm="20">
+    <p><strong>Account</strong> EX-1001</p>
+  </box>
+</canvas>
+```
+
+The shared model is `CanvasBlock(widthMm, heightMm, elements, style)` with `PositionedContent(id, boundsMm, blocks, style)`. JSON uses `type:"canvas"`, the same dimensions, and `elements` containing `id`, `boundsMm`, `blocks` and optional `style`. The canvas origin moves with body pagination; these coordinates are not physical page-edge positions. Use fixed elements for repeating paper-relative content.
+
+For independent flowing columns, use `ColumnsBlock(List<Column>, gapMm, style)`, where `Column(weight, blocks, style)` receives a proportional share of the width left after fixed gaps. Content in each column remains in that column; columns do not automatically rebalance newspaper-style. Native table pagination can continue long columns. Explicit page breaks within columns are unsupported.
+
+```html
+<columns gap-mm="10">
+  <column weight="1"><p>Contact details</p></column>
+  <column weight="2"><p>Longer explanatory content.</p></column>
+</columns>
+<box style="padding:4mm; border-left:2pt solid #10384A; background-color:#F3F5F7">
+  <p>A highlighted flowing notice.</p>
+</box>
+```
+
+A standalone `box` flows at its content height. Typed `BoxBlock(blocks, appearance, style)` uses `BoxAppearance(padding, borders, backgroundColor)` and `Borders(top, right, bottom, left)`; `Borders.uniform(border)` is convenient. Reuse `Padding` in millimeters and `Border` widths in points. HTML boxes accept ordinary text CSS plus `padding` (one/two/four lengths), uniform `border`, per-edge `border-top/right/bottom/left`, and `background-color`. Border values are `none` or width/style/color. Inline image/text layout and general browser CSS remain outside the supported vocabulary.
+
+For paper, use `.page(PageSize.A4)` or `.page(PageSize.LETTER)`, `.landscape()`, or `.pageSizeMm(180, 240)`. Custom dimensions preserve their supplied orientation in the fluent call; a later `.orientation(Orientation.PORTRAIT/LANDSCAPE)` explicitly selects the shorter/longer horizontal edge. Typed/JSON `PageSpec` adds `dimensions: {widthMm, heightMm}` and `orientation`; its default orientation is PORTRAIT. `page.widthMm()` and `page.heightMm()` return effective physical dimensions. HTML uses paired `page-width-mm` / `page-height-mm` root attributes and optional `orientation`. Margins and region coordinates retain their existing meaning.
+
+## 32. Writing direction, fallback fonts and hyphenation
+
+Language/formatting and writing direction are separate settings. `.locale(new LocaleSettings("he-IL"))` selects country formatting and document language; `.direction(TextDirection.AUTO)` derives paragraph base direction from that language. `.direction(TextDirection.RTL)` or `.direction(TextDirection.LTR)` overrides it. Omitting direction retains the existing left-to-right behavior, even with a different formatting locale. Alignment remains an independent style property. FOP performs bidirectional ordering and shaping within its supported script/font capabilities; changing direction does not add missing glyphs.
+
+Register fonts with all variants needed by the content, then explicitly opt into fallback:
+
+```java
+var generator = LetterPdfGenerator.builder()
+    .registerClasspathFont("Unicode", FontVariant.REGULAR, "fonts/DejaVuSans.ttf")
+    .build();
+var letter = Letter.builder().fallbackFonts("Unicode").body("Amount Ω").build();
+var result = generator.render(letter);
+```
+
+The selected font is tried first, followed by configured families in order. Selection works on complete Unicode grapheme clusters, including combining marks, rather than splitting a mark from its base. Authored `TextRun` boundaries remain shaping boundaries; keep a combining sequence within one run. Exact bold/italic faces are required; no synthetic faces or system-font scans occur. Missing family names and uncovered clusters fail with model paths. Successful replacements produce `FONT_SUBSTITUTION` diagnostics. Hyperlinks, styles, dynamic page fields, rich cells and nested containers remain intact. SVG text is part of the image renderer rather than ordinary letter text-run fallback.
+
+Dictionary hyphenation requires explicitly supplied trusted XML patterns, with no runtime downloads:
+
+```java
+var generator = LetterPdfGenerator.builder()
+    .hyphenationPatterns("en-GB", trustedPatternXmlBytes)
+    .build();
+var letter = Letter.builder().locale(new LocaleSettings("en-GB"))
+    .hyphenate(true).body("Long explanatory content...").build();
+```
+
+Patterns use the native FOP hyphenation XML format without DTDs/entities/external resources. The document language tag must exactly match a registration; a different country variant is not silently substituted. `DocumentSettings(locale, metadata, direction, fallbackFonts, hyphenate)` is the shared typed/JSON settings model. HTML callers can supply it through `.settings(...)` on their builder, keeping formatting locale overrides consistent with `.locale(...)`.
+
+## 33. Metadata, tagged output and PDF/A
+
+Metadata is independent of the input API:
+
+```java
+import com.nsdev.lettergenerator.model.DocumentMetadata;
+import com.nsdev.lettergenerator.render.OutputProfile;
+import com.nsdev.lettergenerator.render.RenderOptions;
+
+var letter = Letter.builder()
+    .metadata(new DocumentMetadata("Account update", "Example Company", "Account information", "account,letter"))
+    .body("Your account update...").build();
+var tagged = generator.render(letter, new RenderOptions(false, OutputProfile.TAGGED));
+```
+
+`DocumentMetadata(title, author, subject, keywords)` contains optional text fields. The language comes from `settings.locale.languageTag`. `OutputProfile.STANDARD` retains ordinary behavior. `TAGGED` uses native FOP accessibility structure for text, headings, lists/tables and images, with alternate descriptions supplied by `ImageBlock.altText` / HTML `alt`. The current heading model marks headings as H1; full heading-level hierarchy is not represented. Positioned content follows author/list order, which may differ from visual order. Review reading order and provide meaningful descriptions. This mode does not claim PDF/UA compliance or replace an accessibility audit.
+
+`PDF_A_2B` selects native PDF/A-2b output. Every emitted text font must be explicitly registered for embedding, including needed variants; built-in Helvetica/Courier/Times are not embedded. This includes headings, rich/nested content and page fields. Use an embedded default family via `.style(...)` or a theme. The native renderer enforces its conformance constraints and emits output intent/XMP metadata. Tests inspect native output intent, embedding and metadata, and exercise rejected configurations; they are not an independent PDF/A certification. Validate production archival output with an independent validator as part of your application's acceptance checks.
+
+Tagged and PDF/A modes currently reject watermarks, debug overlays and appended PDF packs before rendering, because these processors cannot preserve those output guarantees. Ordinary metadata is supported with the standard profile and packs. `RenderOptions(boolean debug)` remains available; the two-argument form adds the profile. No partial PDF is returned for an unsupported combination.
+
+## 34. Append existing PDFs
+
+Use immutable attachments to produce a letter followed by existing PDF pages:
+
+```java
+import com.nsdev.lettergenerator.document.PdfAttachment;
+
+var letter = Letter.builder().body("Please find the supporting pages attached.")
+    .attach(PdfAttachment.of(Path.of("terms.pdf")))
+    .attach(PdfAttachment.of(otherPdfBytes))
+    .build();
+var result = generator.render(letter);
+Files.write(Path.of("complete-pack.pdf"), result.pdfBytes());
+for (var part : result.parts()) {
+    System.out.println(part.kind() + ": page " + part.firstPage() + ", count " + part.pageCount());
+}
+```
+
+`PdfAttachment.of(byte[])` and `.of(Path)` own their bytes; later source changes do not alter the model. Invalid, empty and encrypted PDFs are rejected. `LetterDocument.withAttachments(List<PdfAttachment>)` is the typed-model equivalent. JSON uses `attachments:[{"data":"BASE64_PDF"}]`. There is no path/URL loading from JSON or HTML. An HTML-generated model can call `.withAttachments(...)` before rendering.
+
+Attachments append in registration order. Existing content and annotations are retained; the generated letter's stationery, signatures, page fields and watermarks apply to letter pages. Dynamic “Page X of Y” fields count the generated letter, while `RenderResult.pageCount()` counts the full merged pack. `parts()` gives a LETTER range followed by one ATTACHMENT range for each input PDF, with one-based `firstPage` and positive `pageCount`. Appending is available only in the standard profile. This is page assembly, without cryptographic-signature preservation guarantees for signed source PDFs.

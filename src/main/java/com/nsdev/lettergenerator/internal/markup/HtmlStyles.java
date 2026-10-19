@@ -2,6 +2,7 @@ package com.nsdev.lettergenerator.internal.markup;
 
 import com.nsdev.lettergenerator.internal.layout.Units;
 import com.nsdev.lettergenerator.internal.style.RgbColors;
+import com.nsdev.lettergenerator.model.layout.Keep;
 import com.nsdev.lettergenerator.model.style.Style;
 import com.nsdev.lettergenerator.model.style.TextAlign;
 import java.util.Locale;
@@ -66,6 +67,9 @@ public final class HtmlStyles {
      */
     public static Appearance read(Element element) {
         var style = Style.builder();
+        if (element.hasAttr("style-name")) {
+            style.named(element.attr("style-name"));
+        }
         String background = null;
         String width = null;
         String height = null;
@@ -99,6 +103,10 @@ public final class HtmlStyles {
                 case "line-height" -> style.lineHeight(number(value, element));
                 case "margin-top" -> style.spaceBeforeMm(lengthMm(value, 0, false, element));
                 case "margin-bottom" -> style.spaceAfterMm(lengthMm(value, 0, false, element));
+                case "keep-together" -> style.keepTogether(keep(value, element));
+                case "keep-with-next" -> style.keepWithNext(keep(value, element));
+                case "widows" -> style.widows(lineCount(value, element));
+                case "orphans" -> style.orphans(lineCount(value, element));
                 case "background-color" -> background = color(value, element);
                 case "width" -> width = value;
                 case "height" -> height = value;
@@ -107,6 +115,37 @@ public final class HtmlStyles {
             }
         }
         return new Appearance(style.build(), background, width, height);
+    }
+
+    /**
+     * Reads the finite page-keep vocabulary shared with the typed model.
+     *
+     * @param value auto, prefer or always, case-insensitive
+     * @param element location for unsupported values
+     * @return requested keep strength
+     */
+    private static Keep keep(String value, Element element) {
+        try {
+            return Keep.valueOf(value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw MarkupSupport.error(element, "Keep must be auto, prefer or always");
+        }
+    }
+
+    /**
+     * Reads a positive integral widow/orphan count without silently truncating it.
+     *
+     * @param value numeric CSS value
+     * @param element location for invalid values
+     * @return positive line count
+     */
+    private static int lineCount(String value, Element element) {
+        double number = number(value, element);
+        MarkupSupport.require(
+                number >= 1 && number <= Integer.MAX_VALUE && number == Math.rint(number),
+                element,
+                "Line count must be a positive integer");
+        return (int) number;
     }
 
     /**
@@ -172,7 +211,13 @@ public final class HtmlStyles {
                 parent.textAlign(),
                 parent.lineHeight(),
                 null,
-                null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                parent.styleName(),
+                parent.baseStyle() == null ? null : inherited(parent.baseStyle()));
     }
 
     /**

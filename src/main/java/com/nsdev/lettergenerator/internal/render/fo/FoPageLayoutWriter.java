@@ -21,6 +21,9 @@ final class FoPageLayoutWriter {
     /** Master-sequence identifier referenced by the document page sequence. */
     static final String PAGE_SEQUENCE_NAME = "letter";
 
+    /** Stable target for total-page citations, covering the complete rendered page sequence. */
+    static final String PAGE_SEQUENCE_ID = "letter.document";
+
     /** Standard FO flow name used for all ordered body sections. */
     static final String BODY_FLOW_NAME = "xsl-region-body";
 
@@ -94,8 +97,8 @@ final class FoPageLayoutWriter {
         double bottom = page.bottomZoneMm() + (master.isLastPage() ? page.signatureZoneMm() : 0);
         xml.start("simple-page-master")
                 .attribute("master-name", master.identifier())
-                .attribute("page-width", FoLengths.mm(page.size().widthMm()))
-                .attribute("page-height", FoLengths.mm(page.size().heightMm()))
+                .attribute("page-width", FoLengths.mm(page.widthMm()))
+                .attribute("page-height", FoLengths.mm(page.heightMm()))
                 .attribute("margin-top", FoLengths.mm(margins.top()))
                 .attribute("margin-right", FoLengths.mm(margins.right()))
                 .attribute("margin-bottom", FoLengths.mm(margins.bottom()))
