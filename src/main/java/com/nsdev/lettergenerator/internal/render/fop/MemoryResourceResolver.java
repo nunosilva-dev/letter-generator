@@ -1,4 +1,4 @@
-package com.nsdev.lettergenerator.internal.resource;
+package com.nsdev.lettergenerator.internal.render.fop;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,7 +16,7 @@ import org.apache.xmlgraphics.io.ResourceResolver;
  * that exact URI was registered; unknown file/network URIs and every write request fail. Suppliers
  * must return a fresh stream for each lookup because FOP may reopen a resource.
  */
-public final class MemoryResourceResolver implements ResourceResolver {
+final class MemoryResourceResolver implements ResourceResolver {
     /**
      * Immutable per-render URI allowlist; suppliers retain responsibility for creating fresh
      * streams.
@@ -29,7 +29,7 @@ public final class MemoryResourceResolver implements ResourceResolver {
      * @param resources exact memory URIs mapped to repeatable input-stream suppliers
      * @throws NullPointerException if the map, any key, or any supplier is null
      */
-    public MemoryResourceResolver(Map<URI, Supplier<InputStream>> resources) {
+    MemoryResourceResolver(Map<URI, Supplier<InputStream>> resources) {
         this.resources = Map.copyOf(resources);
     }
 

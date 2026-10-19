@@ -1,5 +1,6 @@
 package com.nsdev.lettergenerator.internal.template;
 
+import com.nsdev.lettergenerator.internal.defaults.WatermarkDefaults;
 import com.nsdev.lettergenerator.internal.markup.HtmlStyles;
 import com.nsdev.lettergenerator.internal.markup.MarkupSupport;
 import com.nsdev.lettergenerator.model.layout.PageSelector;
@@ -12,12 +13,6 @@ import org.jsoup.nodes.Element;
 
 /** Text/image watermark appearance and page selection, independent of body layout. */
 final class WatermarkTagHandler implements TemplateTagHandler {
-    /** Fallback image fitting width in millimeters. */
-    private static final double DEFAULT_WIDTH_MM = 80.0;
-
-    /** Fallback image fitting height in millimeters. */
-    private static final double DEFAULT_HEIGHT_MM = 40.0;
-
     @Override
     public String tagName() {
         return "watermark";
@@ -71,8 +66,8 @@ final class WatermarkTagHandler implements TemplateTagHandler {
                             context,
                             context.page().heightMm(),
                             Style.plain(),
-                            DEFAULT_WIDTH_MM,
-                            DEFAULT_HEIGHT_MM);
+                            WatermarkDefaults.IMAGE_MAX_WIDTH_MM,
+                            WatermarkDefaults.IMAGE_MAX_HEIGHT_MM);
             return new ImageWatermark(
                     block.data(),
                     block.mimeType(),

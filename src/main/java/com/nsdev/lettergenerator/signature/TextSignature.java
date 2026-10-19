@@ -1,6 +1,6 @@
 package com.nsdev.lettergenerator.signature;
 
-import com.nsdev.lettergenerator.internal.builder.PlainText;
+import com.nsdev.lettergenerator.internal.content.PlainText;
 import com.nsdev.lettergenerator.model.block.Block;
 import com.nsdev.lettergenerator.model.style.Style;
 import java.util.List;

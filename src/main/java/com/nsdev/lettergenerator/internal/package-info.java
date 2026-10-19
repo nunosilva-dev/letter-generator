@@ -4,7 +4,10 @@
  * <p>Read the pipeline in this order: builders create the model; template/markup or JSON input
  * readers adapt external representations; validation checks declared fields; render.fo serializes
  * FO; render.fop lays it out and checks painted bounds; render.watermark optionally decorates the
- * accepted PDF. Font, resource, style, geometry and XML packages provide shared infrastructure.
+ * accepted PDF. Content conversion, font, style, geometry, utility and XML packages provide shared
+ * infrastructure. Cross-input default policies live in internal.defaults. Engine resource
+ * identifiers live under render.resource; the FOP integration owns its resource resolver and
+ * hardened FO transform.
  *
  * <p>Types in this hierarchy are implementation details even when public visibility is needed
  * between packages. Applications should use the root entry points, public builders and model types.

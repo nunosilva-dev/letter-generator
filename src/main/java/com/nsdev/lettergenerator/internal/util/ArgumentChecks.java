@@ -1,12 +1,12 @@
-package com.nsdev.lettergenerator.internal.builder;
+package com.nsdev.lettergenerator.internal.util;
 
-/** Immediate argument checks for the application-facing convenience API. */
-public final class BuilderChecks {
+/** Immediate argument checks shared by convenience APIs and content conversion helpers. */
+public final class ArgumentChecks {
     /** Prevents construction of this static helper. */
-    private BuilderChecks() {}
+    private ArgumentChecks() {}
 
     /**
-     * Enforces an immediate convenience-API precondition.
+     * Enforces an immediate argument precondition without model-field-path validation.
      *
      * @param valid whether the precondition holds
      * @param message diagnostic used verbatim on failure

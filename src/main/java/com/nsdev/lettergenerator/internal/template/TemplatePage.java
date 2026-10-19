@@ -1,8 +1,10 @@
 package com.nsdev.lettergenerator.internal.template;
 
 import com.nsdev.lettergenerator.builder.LetterBuilder;
+import com.nsdev.lettergenerator.internal.defaults.LetterLayoutDefaults;
 import com.nsdev.lettergenerator.internal.markup.HtmlStyles;
 import com.nsdev.lettergenerator.internal.markup.MarkupSupport;
+import com.nsdev.lettergenerator.model.layout.Margins;
 import com.nsdev.lettergenerator.model.layout.PageSize;
 import com.nsdev.lettergenerator.model.style.Style;
 import java.util.Locale;
@@ -24,15 +26,6 @@ record TemplatePage(
         double headerHeightMm,
         double footerHeightMm,
         Style defaults) {
-    /** Default uniform physical margin in millimeters. */
-    private static final double DEFAULT_MARGIN_MM = 20.0;
-
-    /** Default header reservation height in millimeters. */
-    private static final double DEFAULT_HEADER_HEIGHT_MM = 25.0;
-
-    /** Default footer reservation height in millimeters. */
-    private static final double DEFAULT_FOOTER_HEIGHT_MM = 15.0;
-
     /**
      * Reads the root allowlist, A4/LETTER paper name, numeric millimeter options and text style.
      * Missing options default to A4, 20 mm margins, 25 mm header and 15 mm footer. Numeric parsing
@@ -56,9 +49,11 @@ record TemplatePage(
         }
         return new TemplatePage(
                 size,
-                TemplateAttributes.number(root, "margins-mm", DEFAULT_MARGIN_MM),
-                TemplateAttributes.number(root, "header-height-mm", DEFAULT_HEADER_HEIGHT_MM),
-                TemplateAttributes.number(root, "footer-height-mm", DEFAULT_FOOTER_HEIGHT_MM),
+                TemplateAttributes.number(root, "margins-mm", Margins.defaults().top()),
+                TemplateAttributes.number(
+                        root, "header-height-mm", LetterLayoutDefaults.HEADER_HEIGHT_MM),
+                TemplateAttributes.number(
+                        root, "footer-height-mm", LetterLayoutDefaults.FOOTER_HEIGHT_MM),
                 defaults);
     }
 

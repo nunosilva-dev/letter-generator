@@ -1,29 +1,15 @@
 package com.nsdev.lettergenerator.internal.validation;
 
 import com.nsdev.lettergenerator.exception.InvalidLetterException;
+import com.nsdev.lettergenerator.internal.content.ImageFormat;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import javax.imageio.ImageIO;
 
 /** Validates the declared format, byte signature, and actual decoder result. */
 final class ImageValidator {
-    /** Exact MIME label accepted for PNG data. */
-    private static final String PNG_MIME_TYPE = "image/png";
-
-    /** Exact MIME label accepted for JPEG data. */
-    private static final String JPEG_MIME_TYPE = "image/jpeg";
-
-    /** Complete PNG magic bytes checked before attempting a decode. */
-    private static final byte[] PNG_SIGNATURE = {
-        (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
-    };
-
-    /** JPEG start-of-image prefix checked before attempting a decode. */
-    private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
-
     /** Prevents instantiation of the stateless image checks. */
     private ImageValidator() {}
 
@@ -43,13 +29,13 @@ final class ImageValidator {
         ValidationChecks.positive(width, path + ".widthMm");
         ValidationChecks.positive(height, path + ".heightMm");
         ValidationChecks.required(data, path + ".data");
+        ImageFormat format = ImageFormat.fromMimeType(mimeType);
         ValidationChecks.require(
-                PNG_MIME_TYPE.equals(mimeType) || JPEG_MIME_TYPE.equals(mimeType),
-                path + ".mimeType",
-                "only PNG and JPEG are supported");
-        byte[] signature = PNG_MIME_TYPE.equals(mimeType) ? PNG_SIGNATURE : JPEG_SIGNATURE;
+                format != null, path + ".mimeType", "only PNG and JPEG are supported");
         ValidationChecks.require(
-                startsWith(data, signature), path + ".data", "image bytes do not match MIME type");
+                format.matchesSignature(data),
+                path + ".data",
+                "image bytes do not match MIME type");
         try (InputStream input = new ByteArrayInputStream(data)) {
             BufferedImage image = ImageIO.read(input);
             ValidationChecks.require(
@@ -59,17 +45,5 @@ final class ImageValidator {
         } catch (IOException exception) {
             throw new InvalidLetterException(path + ".data", "invalid image", exception);
         }
-    }
-
-    /**
-     * Compares a complete encoded-image prefix without reading beyond either byte array.
-     *
-     * @param data nonnull encoded data
-     * @param signature nonnull expected leading bytes
-     * @return true if data has at least the prefix length and begins with all signature bytes
-     */
-    private static boolean startsWith(byte[] data, byte[] signature) {
-        return data.length >= signature.length
-                && Arrays.equals(data, 0, signature.length, signature, 0, signature.length);
     }
 }

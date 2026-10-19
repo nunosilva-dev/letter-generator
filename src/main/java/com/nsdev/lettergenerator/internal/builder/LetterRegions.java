@@ -1,6 +1,7 @@
 package com.nsdev.lettergenerator.internal.builder;
 
 import com.nsdev.lettergenerator.internal.layout.PageGeometry;
+import com.nsdev.lettergenerator.internal.util.ArgumentChecks;
 import com.nsdev.lettergenerator.model.block.Block;
 import com.nsdev.lettergenerator.model.block.ImageBlock;
 import com.nsdev.lettergenerator.model.layout.Bounds;
@@ -76,12 +77,12 @@ public final class LetterRegions {
             Bounds headerBounds,
             double footerHeightMm,
             List<FixedElement> extra) {
-        BuilderChecks.nonnegative(margins.top(), "top margin");
-        BuilderChecks.nonnegative(margins.right(), "right margin");
-        BuilderChecks.nonnegative(margins.bottom(), "bottom margin");
-        BuilderChecks.nonnegative(margins.left(), "left margin");
+        ArgumentChecks.nonnegative(margins.top(), "top margin");
+        ArgumentChecks.nonnegative(margins.right(), "right margin");
+        ArgumentChecks.nonnegative(margins.bottom(), "bottom margin");
+        ArgumentChecks.nonnegative(margins.left(), "left margin");
         double width = size.widthMm() - margins.left() - margins.right();
-        BuilderChecks.positive(width, "available page width");
+        ArgumentChecks.positive(width, "available page width");
         boolean hasHeader =
                 logo != null
                         || !header.isEmpty()
@@ -95,7 +96,7 @@ public final class LetterRegions {
                         : Math.max(headerBounds.bottom(), logo.heightMm());
         double topZone = hasHeader ? headerHeight + REGION_GAP_MM : 0;
         double bottomZone = hasFooter ? footerHeightMm + REGION_GAP_MM : 0;
-        BuilderChecks.positive(
+        ArgumentChecks.positive(
                 size.heightMm() - margins.top() - margins.bottom() - topZone - bottomZone,
                 "available body height");
         var elements = new ArrayList<FixedElement>();
@@ -109,9 +110,9 @@ public final class LetterRegions {
                             List.of(logo)));
         }
         if (!header.isEmpty()) {
-            BuilderChecks.nonnegative(headerBounds.x(), "header x");
-            BuilderChecks.positive(headerBounds.width(), "available header width beside the logo");
-            BuilderChecks.require(
+            ArgumentChecks.nonnegative(headerBounds.x(), "header x");
+            ArgumentChecks.positive(headerBounds.width(), "available header width beside the logo");
+            ArgumentChecks.require(
                     headerBounds.right() <= width + PageGeometry.GEOMETRY_TOLERANCE_MM,
                     "Header box exceeds the available page width");
             elements.add(

@@ -6,5 +6,7 @@
  * the selected {@link com.nsdev.lettergenerator.font.FontVariant}. Font sizes are points, spacing
  * is millimeters, and line height is a unitless multiplier. This package resolves values;
  * validation of those values belongs to {@link com.nsdev.lettergenerator.internal.validation}.
+ * {@link com.nsdev.lettergenerator.internal.style.RgbColors} supplies the shared six-digit RGB
+ * predicate; CSS named colors and shorthand expansion remain in the markup reader.
  */
 package com.nsdev.lettergenerator.internal.style;

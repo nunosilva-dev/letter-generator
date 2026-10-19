@@ -1,6 +1,6 @@
 package com.nsdev.lettergenerator.internal.markup;
 
-import com.nsdev.lettergenerator.internal.builder.ImageBlocks;
+import com.nsdev.lettergenerator.internal.content.ImageBlocks;
 import com.nsdev.lettergenerator.model.block.ImageBlock;
 import com.nsdev.lettergenerator.model.style.Style;
 import java.util.Map;

@@ -1,8 +1,8 @@
 package com.nsdev.lettergenerator.builder;
 
 import com.nsdev.lettergenerator.exception.InvalidLetterException;
-import com.nsdev.lettergenerator.internal.builder.BuilderChecks;
 import com.nsdev.lettergenerator.internal.template.TemplateCompiler;
+import com.nsdev.lettergenerator.internal.util.ArgumentChecks;
 import com.nsdev.lettergenerator.model.LetterDocument;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,7 +44,7 @@ public final class HtmlLetterBuilder {
      * @throws IllegalArgumentException if {@code source} is null
      */
     private HtmlLetterBuilder(String source, boolean substitute) {
-        this.source = BuilderChecks.required(source, "template markup");
+        this.source = ArgumentChecks.required(source, "template markup");
         this.substitute = substitute;
     }
 
@@ -83,17 +83,17 @@ public final class HtmlLetterBuilder {
      *     or blank, or a value is null or not scalar
      */
     public HtmlLetterBuilder values(Map<String, ?> replacements) {
-        BuilderChecks.require(
+        ArgumentChecks.require(
                 substitute,
                 "Use Letter.template(...) when supplying placeholder values; fromHtml expects already-resolved markup");
-        BuilderChecks.required(replacements, "template values");
+        ArgumentChecks.required(replacements, "template values");
         var snapshot = new LinkedHashMap<String, String>();
         replacements.forEach(
                 (key, value) -> {
-                    BuilderChecks.require(
+                    ArgumentChecks.require(
                             key != null && !key.isBlank(), "Variable key must not be blank");
-                    BuilderChecks.required(value, "value for " + key);
-                    BuilderChecks.require(
+                    ArgumentChecks.required(value, "value for " + key);
+                    ArgumentChecks.require(
                             value instanceof CharSequence
                                     || value instanceof Number
                                     || value instanceof Boolean
@@ -116,8 +116,8 @@ public final class HtmlLetterBuilder {
      * @throws IllegalArgumentException if the name is null or blank, or the bytes are null
      */
     public HtmlLetterBuilder asset(String name, byte[] data) {
-        BuilderChecks.require(name != null && !name.isBlank(), "Asset name must not be blank");
-        assets.put(name, BuilderChecks.required(data, "asset bytes").clone());
+        ArgumentChecks.require(name != null && !name.isBlank(), "Asset name must not be blank");
+        assets.put(name, ArgumentChecks.required(data, "asset bytes").clone());
         return this;
     }
 

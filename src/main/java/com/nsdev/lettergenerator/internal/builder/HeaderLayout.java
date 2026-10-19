@@ -1,6 +1,8 @@
 package com.nsdev.lettergenerator.internal.builder;
 
+import com.nsdev.lettergenerator.internal.defaults.LetterLayoutDefaults;
 import com.nsdev.lettergenerator.internal.layout.PageGeometry;
+import com.nsdev.lettergenerator.internal.util.ArgumentChecks;
 import com.nsdev.lettergenerator.model.block.ImageBlock;
 import com.nsdev.lettergenerator.model.layout.Bounds;
 import com.nsdev.lettergenerator.model.style.TextAlign;
@@ -15,9 +17,6 @@ import com.nsdev.lettergenerator.model.style.TextAlign;
  * @param boundsMm exact bounds relative to the top zone, or null for automatic placement
  */
 public record HeaderLayout(double heightMm, Double widthMm, TextAlign alignment, Bounds boundsMm) {
-    /** Default automatic header height in millimeters. */
-    private static final double DEFAULT_HEIGHT_MM = 25.0;
-
     /** Horizontal separation between the logo and automatic header, in millimeters. */
     private static final double LOGO_GAP_MM = 5.0;
 
@@ -31,17 +30,17 @@ public record HeaderLayout(double heightMm, Double widthMm, TextAlign alignment,
      * @throws IllegalArgumentException if dimensions are invalid or alignment is justify
      */
     public HeaderLayout {
-        BuilderChecks.positive(heightMm, "header height");
+        ArgumentChecks.positive(heightMm, "header height");
         if (widthMm != null) {
-            BuilderChecks.positive(widthMm, "header width");
+            ArgumentChecks.positive(widthMm, "header width");
         }
-        BuilderChecks.require(
+        ArgumentChecks.require(
                 alignment != TextAlign.JUSTIFY, "Header alignment must be LEFT, CENTER or RIGHT");
         if (boundsMm != null) {
-            BuilderChecks.nonnegative(boundsMm.x(), "header x");
-            BuilderChecks.nonnegative(boundsMm.y(), "header y");
-            BuilderChecks.positive(boundsMm.width(), "header width");
-            BuilderChecks.positive(boundsMm.height(), "header height");
+            ArgumentChecks.nonnegative(boundsMm.x(), "header x");
+            ArgumentChecks.nonnegative(boundsMm.y(), "header y");
+            ArgumentChecks.positive(boundsMm.width(), "header width");
+            ArgumentChecks.positive(boundsMm.height(), "header height");
         }
     }
 
@@ -49,7 +48,7 @@ public record HeaderLayout(double heightMm, Double widthMm, TextAlign alignment,
      * @return automatic left-aligned layout with a 25 mm height and available width
      */
     public static HeaderLayout defaults() {
-        return new HeaderLayout(DEFAULT_HEIGHT_MM, null, null, null);
+        return new HeaderLayout(LetterLayoutDefaults.HEADER_HEIGHT_MM, null, null, null);
     }
 
     /**
@@ -61,7 +60,7 @@ public record HeaderLayout(double heightMm, Double widthMm, TextAlign alignment,
      */
     public HeaderLayout withAlignment(TextAlign value) {
         return new HeaderLayout(
-                heightMm, widthMm, BuilderChecks.required(value, "header alignment"), boundsMm);
+                heightMm, widthMm, ArgumentChecks.required(value, "header alignment"), boundsMm);
     }
 
     /**
@@ -103,7 +102,7 @@ public record HeaderLayout(double heightMm, Double widthMm, TextAlign alignment,
      * @throws IllegalArgumentException if the supplied bounds is invalid
      */
     public HeaderLayout withBounds(Bounds value) {
-        BuilderChecks.required(value, "header bounds");
+        ArgumentChecks.required(value, "header bounds");
         return new HeaderLayout(value.height(), value.width(), alignment, value);
     }
 
@@ -125,7 +124,7 @@ public record HeaderLayout(double heightMm, Double widthMm, TextAlign alignment,
         double available = innerWidth - left;
         double width = widthMm == null ? available : widthMm;
         if (widthMm != null) {
-            BuilderChecks.require(
+            ArgumentChecks.require(
                     width <= available + PageGeometry.GEOMETRY_TOLERANCE_MM,
                     "Header width exceeds the available space beside the logo");
         }

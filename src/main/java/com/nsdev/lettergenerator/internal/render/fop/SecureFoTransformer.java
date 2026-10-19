@@ -1,5 +1,6 @@
-package com.nsdev.lettergenerator.internal.xml;
+package com.nsdev.lettergenerator.internal.render.fop;
 
+import com.nsdev.lettergenerator.internal.xml.XmlBuilder;
 import java.io.StringReader;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
@@ -14,7 +15,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 /** Parses only generated FO; external entities, DTDs, and stylesheets are prohibited. */
-public final class SecureFoTransformer {
+final class SecureFoTransformer {
     /** SAX feature rejecting any DOCTYPE declaration. */
     private static final String DISALLOW_DOCTYPE =
             "http://apache.org/xml/features/disallow-doctype-decl";
@@ -48,7 +49,7 @@ public final class SecureFoTransformer {
      * @throws TransformerException if transform configuration, XML parsing, or delivery to the
      *     handler fails, including rejection of prohibited XML
      */
-    public static void transform(String xml, ContentHandler handler)
+    static void transform(String xml, ContentHandler handler)
             throws SAXException, ParserConfigurationException, TransformerException {
         XMLReader reader = secureReader();
         TransformerFactory factory = TransformerFactory.newInstance();

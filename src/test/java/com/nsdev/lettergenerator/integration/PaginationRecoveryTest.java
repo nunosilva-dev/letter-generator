@@ -1,4 +1,4 @@
-package com.nsdev.lettergenerator.render;
+package com.nsdev.lettergenerator.integration;
 
 import static com.nsdev.lettergenerator.fixtures.LetterFixtures.paragraph;
 import static org.junit.jupiter.api.Assertions.assertEquals;

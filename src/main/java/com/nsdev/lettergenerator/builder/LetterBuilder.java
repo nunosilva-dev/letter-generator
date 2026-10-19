@@ -1,10 +1,13 @@
 package com.nsdev.lettergenerator.builder;
 
-import com.nsdev.lettergenerator.internal.builder.BuilderChecks;
 import com.nsdev.lettergenerator.internal.builder.HeaderLayout;
-import com.nsdev.lettergenerator.internal.builder.ImageBlocks;
 import com.nsdev.lettergenerator.internal.builder.LetterRegions;
-import com.nsdev.lettergenerator.internal.builder.PlainText;
+import com.nsdev.lettergenerator.internal.builder.content.ContentPart;
+import com.nsdev.lettergenerator.internal.builder.content.ContentParts;
+import com.nsdev.lettergenerator.internal.content.ImageBlocks;
+import com.nsdev.lettergenerator.internal.content.PlainText;
+import com.nsdev.lettergenerator.internal.defaults.LetterLayoutDefaults;
+import com.nsdev.lettergenerator.internal.util.ArgumentChecks;
 import com.nsdev.lettergenerator.model.LetterDocument;
 import com.nsdev.lettergenerator.model.Section;
 import com.nsdev.lettergenerator.model.block.Block;
@@ -54,17 +57,6 @@ import java.util.Map;
  * styles, collisions and final layout.
  */
 public final class LetterBuilder {
-    /**
-     * Initial footer content height in millimeters; a separate gap is reserved by region layout.
-     */
-    private static final double DEFAULT_FOOTER_HEIGHT_MM = 15.0;
-
-    /** Maximum width in millimeters for byte/file logo registration. */
-    private static final double DEFAULT_LOGO_WIDTH_MM = 45.0;
-
-    /** Maximum height in millimeters for byte/file logo registration. */
-    private static final double DEFAULT_LOGO_HEIGHT_MM = 20.0;
-
     /** Default body paragraph after-spacing in millimeters. */
     private static final double DEFAULT_PARAGRAPH_GAP_MM = 3.0;
 
@@ -96,9 +88,6 @@ public final class LetterBuilder {
     /** Initial maximum image width in millimeters before final header/footer fitting. */
     private static final double DEFAULT_REGION_IMAGE_WIDTH_MM = 160.0;
 
-    /** Initial signature fit height and bottom signature-zone height in millimeters. */
-    private static final double DEFAULT_SIGNATURE_HEIGHT_MM = 20.0;
-
     /** Ordered appended body parts, including deferred HTML fragments. */
     private final List<ContentPart> body = new ArrayList<>();
 
@@ -124,10 +113,10 @@ public final class LetterBuilder {
     private Style footerStyle = DEFAULT_FOOTER_STYLE;
 
     /** Latest header content; an empty part produces no repeating header element. */
-    private ContentPart header = new ContentPart.Text(List.of());
+    private ContentPart header = ContentParts.text(List.of());
 
     /** Latest footer content; an empty part produces no repeating footer element. */
-    private ContentPart footer = new ContentPart.Text(List.of());
+    private ContentPart footer = ContentParts.text(List.of());
 
     /** Current logo snapshot, or null when no logo has been supplied. */
     private ImageBlock logo;
@@ -136,7 +125,7 @@ public final class LetterBuilder {
     private HeaderLayout headerLayout = HeaderLayout.defaults();
 
     /** Current footer content height in millimeters, excluding the body gap. */
-    private double footerHeight = DEFAULT_FOOTER_HEIGHT_MM;
+    private double footerHeight = LetterLayoutDefaults.FOOTER_HEIGHT_MM;
 
     /** Latest signature content, or null when no signature has been supplied. */
     private ContentPart signature;
@@ -145,7 +134,7 @@ public final class LetterBuilder {
     private SignaturePlacement signaturePlacement = SignaturePlacement.FLOW;
 
     /** HTML image height basis and optional reserved signature-zone height in millimeters. */
-    private double signatureHeight = DEFAULT_SIGNATURE_HEIGHT_MM;
+    private double signatureHeight = LetterLayoutDefaults.SIGNATURE_HEIGHT_MM;
 
     /** Latest PDF post-processing watermark, or null when absent. */
     private Watermark watermark;
@@ -159,7 +148,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code size} is null
      */
     public LetterBuilder page(PageSize size) {
-        page = BuilderChecks.required(size, "page size");
+        page = ArgumentChecks.required(size, "page size");
         return this;
     }
 
@@ -172,7 +161,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if the value is negative or nonfinite
      */
     public LetterBuilder marginsMm(double allSides) {
-        return margins(Margins.uniform(BuilderChecks.nonnegative(allSides, "margins")));
+        return margins(Margins.uniform(ArgumentChecks.nonnegative(allSides, "margins")));
     }
 
     /**
@@ -184,7 +173,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code value} is null
      */
     public LetterBuilder margins(Margins value) {
-        margins = BuilderChecks.required(value, "margins");
+        margins = ArgumentChecks.required(value, "margins");
         return this;
     }
 
@@ -198,7 +187,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code value} is null
      */
     public LetterBuilder style(Style value) {
-        style = DEFAULT_BODY_STYLE.overlay(BuilderChecks.required(value, "style"));
+        style = DEFAULT_BODY_STYLE.overlay(ArgumentChecks.required(value, "style"));
         return this;
     }
 
@@ -212,7 +201,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if the array or a chunk is null
      */
     public LetterBuilder body(String... content) {
-        body.add(new ContentPart.Blocks(PlainText.body(content)));
+        body.add(ContentParts.blocks(PlainText.body(content)));
         return this;
     }
 
@@ -226,7 +215,7 @@ public final class LetterBuilder {
     public LetterBuilder heading(String text) {
         return block(
                 new Heading(
-                        List.of(new TextRun(BuilderChecks.required(text, "heading"), null, null)),
+                        List.of(new TextRun(ArgumentChecks.required(text, "heading"), null, null)),
                         null));
     }
 
@@ -260,7 +249,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code value} is null
      */
     public LetterBuilder block(Block value) {
-        body.add(new ContentPart.Blocks(List.of(BuilderChecks.required(value, "block"))));
+        body.add(ContentParts.blocks(List.of(ArgumentChecks.required(value, "block"))));
         return this;
     }
 
@@ -276,7 +265,7 @@ public final class LetterBuilder {
      */
     public LetterBuilder header(String... text) {
         PlainText.region(headerStyle, text);
-        header = new ContentPart.Text(Arrays.asList(text.clone()));
+        header = ContentParts.text(Arrays.asList(text.clone()));
         return this;
     }
 
@@ -292,7 +281,7 @@ public final class LetterBuilder {
      */
     public LetterBuilder footer(String... text) {
         PlainText.region(footerStyle, text);
-        footer = new ContentPart.Text(Arrays.asList(text.clone()));
+        footer = ContentParts.text(Arrays.asList(text.clone()));
         return this;
     }
 
@@ -309,7 +298,7 @@ public final class LetterBuilder {
         headerStyle =
                 DEFAULT_HEADER_STYLE
                         .overlay(alignment)
-                        .overlay(BuilderChecks.required(value, "header style"));
+                        .overlay(ArgumentChecks.required(value, "header style"));
         return this;
     }
 
@@ -372,7 +361,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code value} is null
      */
     public LetterBuilder footerStyle(Style value) {
-        footerStyle = DEFAULT_FOOTER_STYLE.overlay(BuilderChecks.required(value, "footer style"));
+        footerStyle = DEFAULT_FOOTER_STYLE.overlay(ArgumentChecks.required(value, "footer style"));
         return this;
     }
 
@@ -399,7 +388,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if the value is nonpositive or nonfinite
      */
     public LetterBuilder footerHeightMm(double value) {
-        footerHeight = BuilderChecks.positive(value, "footer height");
+        footerHeight = ArgumentChecks.positive(value, "footer height");
         return this;
     }
 
@@ -413,7 +402,11 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if bytes are null, unreadable or not PNG/JPEG
      */
     public LetterBuilder logo(byte[] image) {
-        logo = ImageBlocks.fit(image, DEFAULT_LOGO_WIDTH_MM, DEFAULT_LOGO_HEIGHT_MM);
+        logo =
+                ImageBlocks.fit(
+                        image,
+                        LetterLayoutDefaults.LOGO_MAX_WIDTH_MM,
+                        LetterLayoutDefaults.LOGO_MAX_HEIGHT_MM);
         return this;
     }
 
@@ -441,15 +434,15 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if the array is null or empty, or a part is null
      */
     public LetterBuilder signature(SignatureContent... parts) {
-        BuilderChecks.required(parts, "signature parts");
-        BuilderChecks.require(parts.length > 0, "At least one signature part is required");
+        ArgumentChecks.required(parts, "signature parts");
+        ArgumentChecks.require(parts.length > 0, "At least one signature part is required");
         var blocks = new ArrayList<Block>();
         Arrays.stream(parts)
                 .forEach(
                         part ->
                                 blocks.addAll(
-                                        BuilderChecks.required(part, "signature part").blocks()));
-        signature = new ContentPart.Blocks(blocks);
+                                        ArgumentChecks.required(part, "signature part").blocks()));
+        signature = ContentParts.blocks(blocks);
         return this;
     }
 
@@ -463,7 +456,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code value} is null
      */
     public LetterBuilder signaturePlacement(SignaturePlacement value) {
-        signaturePlacement = BuilderChecks.required(value, "signature placement");
+        signaturePlacement = ArgumentChecks.required(value, "signature placement");
         return this;
     }
 
@@ -481,7 +474,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if the value is nonpositive or nonfinite
      */
     public LetterBuilder signatureHeightMm(double value) {
-        signatureHeight = BuilderChecks.positive(value, "signature height");
+        signatureHeight = ArgumentChecks.positive(value, "signature height");
         return this;
     }
 
@@ -505,7 +498,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code value} is null
      */
     public LetterBuilder watermark(Watermark value) {
-        watermark = BuilderChecks.required(value, "watermark");
+        watermark = ArgumentChecks.required(value, "watermark");
         return this;
     }
 
@@ -519,7 +512,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code element} is null
      */
     public LetterBuilder fixedElement(FixedElement element) {
-        fixedElements.add(BuilderChecks.required(element, "fixed element"));
+        fixedElements.add(ArgumentChecks.required(element, "fixed element"));
         return this;
     }
 
@@ -534,8 +527,8 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if the name is null or blank, or the bytes are null
      */
     public LetterBuilder asset(String name, byte[] data) {
-        BuilderChecks.require(name != null && !name.isBlank(), "Asset name must not be blank");
-        assets.put(name, BuilderChecks.required(data, "asset bytes").clone());
+        ArgumentChecks.require(name != null && !name.isBlank(), "Asset name must not be blank");
+        assets.put(name, ArgumentChecks.required(data, "asset bytes").clone());
         return this;
     }
 
@@ -565,7 +558,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code markup} is null
      */
     public LetterBuilder bodyHtml(String markup) {
-        body.add(new ContentPart.Html(BuilderChecks.required(markup, "body markup")));
+        body.add(ContentParts.html(ArgumentChecks.required(markup, "body markup")));
         return this;
     }
 
@@ -579,7 +572,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code markup} is null
      */
     public LetterBuilder headerHtml(String markup) {
-        header = new ContentPart.Html(BuilderChecks.required(markup, "header markup"));
+        header = ContentParts.html(ArgumentChecks.required(markup, "header markup"));
         return this;
     }
 
@@ -593,7 +586,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code markup} is null
      */
     public LetterBuilder footerHtml(String markup) {
-        footer = new ContentPart.Html(BuilderChecks.required(markup, "footer markup"));
+        footer = ContentParts.html(ArgumentChecks.required(markup, "footer markup"));
         return this;
     }
 
@@ -607,7 +600,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code markup} is null
      */
     public LetterBuilder signatureHtml(String markup) {
-        signature = new ContentPart.Html(BuilderChecks.required(markup, "signature markup"));
+        signature = ContentParts.html(ArgumentChecks.required(markup, "signature markup"));
         return this;
     }
 
@@ -624,8 +617,8 @@ public final class LetterBuilder {
      */
     public LetterBuilder headerBlocks(Block... blocks) {
         header =
-                new ContentPart.Blocks(
-                        Arrays.asList(BuilderChecks.required(blocks, "header blocks")));
+                ContentParts.blocks(
+                        Arrays.asList(ArgumentChecks.required(blocks, "header blocks")));
         return this;
     }
 
@@ -642,8 +635,8 @@ public final class LetterBuilder {
      */
     public LetterBuilder footerBlocks(Block... blocks) {
         footer =
-                new ContentPart.Blocks(
-                        Arrays.asList(BuilderChecks.required(blocks, "footer blocks")));
+                ContentParts.blocks(
+                        Arrays.asList(ArgumentChecks.required(blocks, "footer blocks")));
         return this;
     }
 
@@ -659,8 +652,8 @@ public final class LetterBuilder {
      */
     public LetterBuilder signatureBlocks(Block... blocks) {
         signature =
-                new ContentPart.Blocks(
-                        Arrays.asList(BuilderChecks.required(blocks, "signature blocks")));
+                ContentParts.blocks(
+                        Arrays.asList(ArgumentChecks.required(blocks, "signature blocks")));
         return this;
     }
 
@@ -675,7 +668,7 @@ public final class LetterBuilder {
      */
     public LetterBuilder header(byte[] image) {
         header =
-                new ContentPart.Image(
+                ContentParts.image(
                         ImageBlocks.fit(
                                 image, DEFAULT_REGION_IMAGE_WIDTH_MM, headerLayout.heightMm()));
         return this;
@@ -706,7 +699,7 @@ public final class LetterBuilder {
      */
     public LetterBuilder footer(byte[] image) {
         footer =
-                new ContentPart.Image(
+                ContentParts.image(
                         ImageBlocks.fit(image, DEFAULT_REGION_IMAGE_WIDTH_MM, footerHeight));
         return this;
     }
@@ -735,7 +728,7 @@ public final class LetterBuilder {
      * @throws IllegalArgumentException if {@code image} is null
      */
     public LetterBuilder logo(ImageBlock image) {
-        logo = BuilderChecks.required(image, "logo");
+        logo = ArgumentChecks.required(image, "logo");
         return this;
     }
 
@@ -757,10 +750,10 @@ public final class LetterBuilder {
             throw new IllegalStateException("A letter needs body content");
         }
         double width =
-                BuilderChecks.positive(
+                ArgumentChecks.positive(
                         page.widthMm() - margins.left() - margins.right(), "available page width");
         double height =
-                BuilderChecks.positive(
+                ArgumentChecks.positive(
                         page.heightMm() - margins.top() - margins.bottom(),
                         "available page height");
         ImageBlock fittedLogo = logo;

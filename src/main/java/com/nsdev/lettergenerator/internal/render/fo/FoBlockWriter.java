@@ -1,6 +1,6 @@
 package com.nsdev.lettergenerator.internal.render.fo;
 
-import com.nsdev.lettergenerator.internal.resource.ResourceUris;
+import com.nsdev.lettergenerator.internal.render.resource.ResourceUris;
 import com.nsdev.lettergenerator.internal.style.ResolvedStyle;
 import com.nsdev.lettergenerator.internal.xml.XmlBuilder;
 import com.nsdev.lettergenerator.model.block.Block;

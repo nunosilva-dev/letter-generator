@@ -1,5 +1,6 @@
-package com.nsdev.lettergenerator.internal.builder;
+package com.nsdev.lettergenerator.internal.content;
 
+import com.nsdev.lettergenerator.internal.util.ArgumentChecks;
 import com.nsdev.lettergenerator.model.block.Block;
 import com.nsdev.lettergenerator.model.block.PageBreakBlock;
 import com.nsdev.lettergenerator.model.block.Paragraph;
@@ -26,10 +27,11 @@ public final class PlainText {
      * @throws IllegalArgumentException if the array or a chunk is null
      */
     public static List<Block> body(String... chunks) {
-        BuilderChecks.required(chunks, "body");
+        ArgumentChecks.required(chunks, "body");
         var blocks = new ArrayList<Block>();
         for (String chunk : chunks) {
-            String[] pages = normalize(BuilderChecks.required(chunk, "body text")).split("\\f", -1);
+            String[] pages =
+                    normalize(ArgumentChecks.required(chunk, "body text")).split("\\f", -1);
             for (int index = 0; index < pages.length; index++) {
                 if (index > 0) {
                     blocks.add(new PageBreakBlock());
@@ -51,11 +53,11 @@ public final class PlainText {
      * @throws IllegalArgumentException if text is null or contains a form feed
      */
     public static List<Block> region(Style style, String... chunks) {
-        BuilderChecks.required(chunks, "region text");
+        ArgumentChecks.required(chunks, "region text");
         var blocks = new ArrayList<Block>();
         for (String chunk : chunks) {
-            String value = normalize(BuilderChecks.required(chunk, "region text"));
-            BuilderChecks.require(
+            String value = normalize(ArgumentChecks.required(chunk, "region text"));
+            ArgumentChecks.require(
                     !value.contains("\f"), "Page breaks are only supported in body text");
             paragraphs(value, style, blocks);
         }

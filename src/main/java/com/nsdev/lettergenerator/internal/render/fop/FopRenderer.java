@@ -3,7 +3,6 @@ package com.nsdev.lettergenerator.internal.render.fop;
 import com.nsdev.lettergenerator.exception.PdfGenerationException;
 import com.nsdev.lettergenerator.internal.font.FontRegistry;
 import com.nsdev.lettergenerator.internal.render.fo.FoComposer;
-import com.nsdev.lettergenerator.internal.xml.SecureFoTransformer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;

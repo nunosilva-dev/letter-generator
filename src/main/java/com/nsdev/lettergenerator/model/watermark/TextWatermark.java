@@ -1,5 +1,7 @@
 package com.nsdev.lettergenerator.model.watermark;
 
+import com.nsdev.lettergenerator.internal.defaults.WatermarkDefaults;
+import com.nsdev.lettergenerator.internal.font.StandardFontFamilies;
 import com.nsdev.lettergenerator.model.layout.PageSelector;
 
 /**
@@ -30,17 +32,11 @@ public record TextWatermark(
         Double opacity,
         Double rotationDegrees)
         implements Watermark {
-    /** Regular family used by the text factory. */
-    private static final String DEFAULT_FONT_FAMILY = "Helvetica";
-
     /** Text factory font size in points. */
     private static final double DEFAULT_FONT_SIZE_PT = 50.0;
 
     /** Text factory RGB fill color. */
     private static final String DEFAULT_COLOR = "#B0B0B0";
-
-    /** Text factory paint opacity, on the zero-to-one scale. */
-    private static final double DEFAULT_OPACITY = 0.12;
 
     /** Text factory counterclockwise rotation about page center, in degrees. */
     private static final double DEFAULT_ROTATION_DEGREES = 45.0;
@@ -55,11 +51,11 @@ public record TextWatermark(
     public static TextWatermark of(String text) {
         return new TextWatermark(
                 text,
-                DEFAULT_FONT_FAMILY,
+                StandardFontFamilies.HELVETICA,
                 DEFAULT_FONT_SIZE_PT,
                 DEFAULT_COLOR,
                 PageSelector.ALL,
-                DEFAULT_OPACITY,
+                WatermarkDefaults.OPACITY,
                 DEFAULT_ROTATION_DEGREES);
     }
 }

@@ -1,6 +1,6 @@
 package com.nsdev.lettergenerator.signature;
 
-import com.nsdev.lettergenerator.internal.builder.ImageBlocks;
+import com.nsdev.lettergenerator.internal.content.ImageBlocks;
 import com.nsdev.lettergenerator.model.block.Block;
 import com.nsdev.lettergenerator.model.block.ImageBlock;
 import java.io.IOException;

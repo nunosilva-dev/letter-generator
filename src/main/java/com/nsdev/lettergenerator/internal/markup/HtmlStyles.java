@@ -1,5 +1,7 @@
 package com.nsdev.lettergenerator.internal.markup;
 
+import com.nsdev.lettergenerator.internal.layout.Units;
+import com.nsdev.lettergenerator.internal.style.RgbColors;
 import com.nsdev.lettergenerator.model.style.Style;
 import com.nsdev.lettergenerator.model.style.TextAlign;
 import java.util.Locale;
@@ -12,24 +14,12 @@ public final class HtmlStyles {
     /** Index of the blue component in a three-digit hexadecimal color. */
     private static final int BLUE_DIGIT_INDEX = 3;
 
-    /** Typographic point density used for CSS conversion. */
-    private static final double POINTS_PER_INCH = 72.0;
-
-    /** CSS pixel density used for image dimensions and px lengths. */
-    private static final double PIXELS_PER_INCH = 96.0;
-
-    /** Millimeters per inch used for CSS unit conversion. */
-    private static final double MM_PER_INCH = 25.4;
-
     /** Divisor converting percentage values to fractions. */
     private static final double PERCENT_SCALE = 100.0;
 
     /** Supported decimal lengths and optional mm, pt, px or percentage units. */
     private static final Pattern LENGTH =
             Pattern.compile("([+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+))(mm|pt|px|%)?");
-
-    /** Accepted six-digit hexadecimal color syntax. */
-    private static final Pattern HEX = Pattern.compile("#[0-9a-fA-F]{6}");
 
     /** Accepted three-digit shorthand color syntax. */
     private static final Pattern SHORT_HEX = Pattern.compile("#[0-9a-fA-F]{3}");
@@ -197,7 +187,7 @@ public final class HtmlStyles {
         String normalized = value.trim().toLowerCase(Locale.ROOT);
         return normalized.endsWith("pt")
                 ? number(normalized.substring(0, normalized.length() - 2), element)
-                : millimeters * POINTS_PER_INCH / MM_PER_INCH;
+                : Units.millimetersToPoints(millimeters);
     }
 
     /**
@@ -225,12 +215,12 @@ public final class HtmlStyles {
                     amount == 0 || pixelsWhenUnitless,
                     element,
                     "Length requires mm, pt or px: " + value);
-            return amount * MM_PER_INCH / PIXELS_PER_INCH;
+            return Units.pixelsToMillimeters(amount);
         }
         return switch (unit) {
             case "mm" -> amount;
-            case "pt" -> amount * MM_PER_INCH / POINTS_PER_INCH;
-            case "px" -> amount * MM_PER_INCH / PIXELS_PER_INCH;
+            case "pt" -> Units.pointsToMillimeters(amount);
+            case "px" -> Units.pixelsToMillimeters(amount);
             case "%" -> {
                 MarkupSupport.require(
                         percentageBase > 0, element, "Percentage is unsupported here");
@@ -279,7 +269,7 @@ public final class HtmlStyles {
                             + normalized.charAt(BLUE_DIGIT_INDEX);
         }
         MarkupSupport.require(
-                HEX.matcher(normalized).matches(),
+                RgbColors.isHexRgb(normalized),
                 element,
                 "Expected a supported color or #RRGGBB: " + value);
         return normalized;

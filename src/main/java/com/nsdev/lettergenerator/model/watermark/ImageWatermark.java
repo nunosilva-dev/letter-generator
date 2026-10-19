@@ -1,6 +1,7 @@
 package com.nsdev.lettergenerator.model.watermark;
 
-import com.nsdev.lettergenerator.internal.builder.ImageBlocks;
+import com.nsdev.lettergenerator.internal.content.ImageBlocks;
+import com.nsdev.lettergenerator.internal.defaults.WatermarkDefaults;
 import com.nsdev.lettergenerator.model.layout.PageSelector;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,15 +37,6 @@ public record ImageWatermark(
         Double opacity,
         Double rotationDegrees)
         implements Watermark {
-    /** Maximum image width used by the factory, in millimeters. */
-    private static final double DEFAULT_WIDTH_MM = 80.0;
-
-    /** Maximum image height used by the factory, in millimeters. */
-    private static final double DEFAULT_HEIGHT_MM = 40.0;
-
-    /** Image factory paint opacity, on the zero-to-one scale. */
-    private static final double DEFAULT_OPACITY = 0.12;
-
     /** Image factory rotation about page center, in degrees. */
     private static final double DEFAULT_ROTATION_DEGREES = 0.0;
 
@@ -58,14 +50,18 @@ public record ImageWatermark(
      * @throws IllegalArgumentException if data is null, unreadable, or not supported PNG/JPEG
      */
     public static ImageWatermark of(byte[] data) {
-        var image = ImageBlocks.fit(data, DEFAULT_WIDTH_MM, DEFAULT_HEIGHT_MM);
+        var image =
+                ImageBlocks.fit(
+                        data,
+                        WatermarkDefaults.IMAGE_MAX_WIDTH_MM,
+                        WatermarkDefaults.IMAGE_MAX_HEIGHT_MM);
         return new ImageWatermark(
                 image.data(),
                 image.mimeType(),
                 image.widthMm(),
                 image.heightMm(),
                 PageSelector.ALL,
-                DEFAULT_OPACITY,
+                WatermarkDefaults.OPACITY,
                 DEFAULT_ROTATION_DEGREES);
     }
 

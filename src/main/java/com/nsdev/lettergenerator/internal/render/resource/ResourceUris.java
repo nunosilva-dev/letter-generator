@@ -1,4 +1,4 @@
-package com.nsdev.lettergenerator.internal.resource;
+package com.nsdev.lettergenerator.internal.render.resource;
 
 import java.net.URI;
 

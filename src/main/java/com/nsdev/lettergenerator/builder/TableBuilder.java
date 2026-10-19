@@ -1,6 +1,6 @@
 package com.nsdev.lettergenerator.builder;
 
-import com.nsdev.lettergenerator.internal.builder.BuilderChecks;
+import com.nsdev.lettergenerator.internal.util.ArgumentChecks;
 import com.nsdev.lettergenerator.model.block.TableBlock;
 import com.nsdev.lettergenerator.model.style.Style;
 import com.nsdev.lettergenerator.model.table.TableCell;
@@ -51,11 +51,11 @@ public final class TableBuilder {
      * @throws IllegalArgumentException if headers are null or empty, or contain null
      */
     public TableBuilder(String... headers) {
-        BuilderChecks.required(headers, "table headers");
-        BuilderChecks.require(headers.length > 0, "At least one table column is required");
+        ArgumentChecks.required(headers, "table headers");
+        ArgumentChecks.require(headers.length > 0, "At least one table column is required");
         this.headers =
                 Arrays.stream(headers)
-                        .map(value -> BuilderChecks.required(value, "column header"))
+                        .map(value -> ArgumentChecks.required(value, "column header"))
                         .toList();
         weights = Collections.nCopies(headers.length, 1d);
     }
@@ -70,12 +70,12 @@ public final class TableBuilder {
      *     the header count
      */
     public TableBuilder row(String... values) {
-        BuilderChecks.required(values, "row");
-        BuilderChecks.require(
+        ArgumentChecks.required(values, "row");
+        ArgumentChecks.require(
                 values.length == headers.size(), "Row must contain " + headers.size() + " cells");
         rows.add(
                 Arrays.stream(values)
-                        .map(value -> cell(BuilderChecks.required(value, "cell text"), null, null))
+                        .map(value -> cell(ArgumentChecks.required(value, "cell text"), null, null))
                         .toList());
         return this;
     }
@@ -91,16 +91,16 @@ public final class TableBuilder {
      *     count, any value is nonpositive or nonfinite, or their sum is nonfinite
      */
     public TableBuilder columnWeights(double... values) {
-        BuilderChecks.required(values, "column weights");
-        BuilderChecks.require(
+        ArgumentChecks.required(values, "column weights");
+        ArgumentChecks.require(
                 values.length == headers.size(), "Weights must match the column count");
         var copy = new ArrayList<Double>();
         double total = 0;
         for (double value : values) {
-            copy.add(BuilderChecks.positive(value, "column weight"));
+            copy.add(ArgumentChecks.positive(value, "column weight"));
             total += value;
         }
-        BuilderChecks.require(Double.isFinite(total), "Column weights must have a finite sum");
+        ArgumentChecks.require(Double.isFinite(total), "Column weights must have a finite sum");
         weights = List.copyOf(copy);
         return this;
     }
@@ -114,7 +114,7 @@ public final class TableBuilder {
      * @throws IllegalArgumentException if {@code value} is null
      */
     public TableBuilder style(Style value) {
-        style = BuilderChecks.required(value, "table style");
+        style = ArgumentChecks.required(value, "table style");
         return this;
     }
 
@@ -127,7 +127,7 @@ public final class TableBuilder {
      * @throws IllegalArgumentException if {@code value} is null
      */
     public TableBuilder headerStyle(Style value) {
-        headerStyle = DEFAULT_HEADER_STYLE.overlay(BuilderChecks.required(value, "header style"));
+        headerStyle = DEFAULT_HEADER_STYLE.overlay(ArgumentChecks.required(value, "header style"));
         return this;
     }
 
@@ -140,7 +140,7 @@ public final class TableBuilder {
      * @throws IllegalArgumentException if {@code color} is null
      */
     public TableBuilder headerBackground(String color) {
-        headerBackground = BuilderChecks.required(color, "header background");
+        headerBackground = ArgumentChecks.required(color, "header background");
         return this;
     }
 

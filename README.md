@@ -1040,13 +1040,16 @@ The package layout separates responsibilities:
 | Package under `com.nsdev.lettergenerator` | Responsibility |
 | --- | --- |
 | root, `builder`, `signature`, `model.*`, `font`, `exception` | Supported application contract |
+| `internal.builder`, `internal.builder.content` | Builder-specific region assembly and deferred content resolution |
+| `internal.content`, `internal.util` | Shared text/image conversion, immediate argument checks and collection snapshots |
+| `internal.defaults` | Letter and watermark default policies shared across input APIs |
 | `internal.markup`, `internal.template` | Strict document markup, map binding and template composition |
 | `internal.validation`, `internal.json` | Field-path validation and strict JSON parsing |
 | `internal.font`, `internal.style`, `internal.layout` | Immutable font snapshots, inherited styles, dimensions and units |
 | `internal.render.fo` | Structured FO block/style/page-layout serialization |
-| `internal.render.fop` | FOP configuration, diagnostics, and glyph-bound checks |
+| `internal.render.fop` | FOP configuration, diagnostics, glyph-bound checks, resource allowlist and hardened FO transform |
 | `internal.render.watermark` | Optional PDFBox processing |
-| `internal.resource`, `internal.xml` | In-memory resource allowlist and secure XML handling |
+| `internal.render.resource`, `internal.xml` | Private render-resource identifiers and engine-independent XML helpers |
 
 The test suite separates shared fixtures from integration tests. Image records provide byte-content equality/hash codes in addition to defensive copying. Pagination recovery uses typed diagnostics and retries only recoverable body overflow or a missing last-page master. Font, fixed-box, and parsing failures do not trigger a broad retry.
 

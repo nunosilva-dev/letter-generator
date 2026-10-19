@@ -1,17 +1,14 @@
 package com.nsdev.lettergenerator.internal.validation;
 
 import com.nsdev.lettergenerator.internal.font.FontRegistry;
+import com.nsdev.lettergenerator.internal.style.RgbColors;
 import com.nsdev.lettergenerator.model.style.Style;
-import java.util.regex.Pattern;
 
 /**
  * Validates only explicitly set style properties; null properties retain inheritance. Variant
  * availability is checked after block/run styles have been resolved.
  */
 final class StyleValidator {
-    /** Six-digit hexadecimal RGB syntax accepted by the model, with either letter case. */
-    private static final Pattern RGB_COLOR = Pattern.compile("#[0-9a-fA-F]{6}");
-
     /** Generator font snapshot for checking explicitly selected families. */
     private final FontRegistry fonts;
 
@@ -67,7 +64,6 @@ final class StyleValidator {
      *     does not match six-digit hexadecimal RGB syntax
      */
     static void color(String value, String path) {
-        ValidationChecks.require(
-                value != null && RGB_COLOR.matcher(value).matches(), path, "expected #RRGGBB");
+        ValidationChecks.require(RgbColors.isHexRgb(value), path, "expected #RRGGBB");
     }
 }

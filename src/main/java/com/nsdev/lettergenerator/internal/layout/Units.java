@@ -11,6 +11,9 @@ public final class Units {
     /** Exact millimeter length of one inch. */
     private static final double MILLIMETERS_PER_INCH = 25.4;
 
+    /** CSS reference pixel density, independent of the physical display or image resolution. */
+    private static final double CSS_PIXELS_PER_INCH = 96.0;
+
     /** Prevents instantiation of the scalar conversion helpers. */
     private Units() {}
 
@@ -22,6 +25,26 @@ public final class Units {
      */
     public static double millimetersToPoints(double millimeters) {
         return millimeters * POINTS_PER_INCH / MILLIMETERS_PER_INCH;
+    }
+
+    /**
+     * Converts typographic points to model millimeters without rounding.
+     *
+     * @param points distance in points, using 72 points per inch
+     * @return distance in millimeters
+     */
+    public static double pointsToMillimeters(double points) {
+        return points * MILLIMETERS_PER_INCH / POINTS_PER_INCH;
+    }
+
+    /**
+     * Converts CSS reference pixels to model millimeters without rounding.
+     *
+     * @param pixels distance in CSS pixels, using 96 pixels per inch
+     * @return distance in millimeters
+     */
+    public static double pixelsToMillimeters(double pixels) {
+        return pixels * MILLIMETERS_PER_INCH / CSS_PIXELS_PER_INCH;
     }
 
     /**
