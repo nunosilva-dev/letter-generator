@@ -77,17 +77,18 @@ The `builder`/`internal.template` package cycle is deliberate: `HtmlLetterBuilde
 
 ### Browsing and checking Javadocs
 
-Use **JDK 17's** `javadoc` command from the repository root. This generates browsable documentation for public and internal code, including private helpers, and treats documentation warnings as failures:
+The Maven Javadoc Plugin generates the API website and attaches its JAR during `package`, `verify` and `install`. Use JDK 17 for the project's acceptance build. Documentation warnings and errors fail the build; source/HTML encodings are UTF-8 and Javadoc targets Java 17.
 
 ```sh
-./mvnw dependency:build-classpath -DincludeScope=runtime -Dmdep.outputFile=target/classpath.txt
-javadoc --release 17 -private -Xdoclint:all -Werror \
-  -classpath "$(cat target/classpath.txt)" \
-  -sourcepath src/main/java -subpackages com.nsdev.lettergenerator \
-  -d target/apidocs
+./mvnw javadoc:javadoc                      # Public API website
+./mvnw -Pinternal-javadocs javadoc:javadoc   # Full contributor website, including private helpers
 ```
 
-Open `target/apidocs/index.html` to browse it, or use your IDE's documentation hover/navigation directly on the source. Generated documentation stays under the ignored `target` directory. Update method and package documentation when their contracts change; comments must describe current behavior rather than proposed features.
+Open `target/apidocs/index.html` for the public API or `target/internal-docs/apidocs/index.html` for the contributor view. The normal website and `target/letter-generator-1.0.0-SNAPSHOT-javadoc.jar` exclude implementation packages under `internal`. The attached JAR keeps that public scope even if the contributor profile is active. Full internal documentation is for navigating implementation; it does not extend the supported application contract.
+
+Both commands work offline with `-o` once the plugin and dependencies are cached. Automatic remote JDK documentation links are disabled to keep generation independent of external documentation servers. Generated websites stay under the ignored `target` directory. Update method and package documentation when their contracts change; comments must describe current behavior rather than proposed features.
+
+`Diagnostic` uses `@serial exclude` to avoid Java 17 doclet warnings about its generated private record fields when generating public documentation. Its public record components remain fully documented, and serialization behavior is unchanged. The record's class documentation describes its serialized values; do not weaken global doclint or warning checks to work around this case.
 
 ## Conventions
 

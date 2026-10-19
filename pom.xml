@@ -12,6 +12,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <fop.version>2.11</fop.version>
         <jackson.version>2.22.3</jackson.version>
@@ -22,6 +23,7 @@
         <checkstyle.version>10.17.0</checkstyle.version>
         <jsoup.version>1.23.2</jsoup.version>
         <commons-text.version>1.15.0</commons-text.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -138,6 +140,38 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc-plugin.version}</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <docencoding>${project.reporting.outputEncoding}</docencoding>
+                    <charset>${project.reporting.outputEncoding}</charset>
+                    <doclint>all</doclint>
+                    <failOnError>true</failOnError>
+                    <failOnWarnings>true</failOnWarnings>
+                    <!-- Documentation generation needs no network after dependencies are cached. -->
+                    <detectJavaApiLink>false</detectJavaApiLink>
+                    <show>public</show>
+                    <excludePackageNames>com.nsdev.lettergenerator.internal,com.nsdev.lettergenerator.internal.*</excludePackageNames>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>package</phase>
+                        <goals><goal>jar</goal></goals>
+                        <configuration>
+                            <!-- Keep distributed documentation public even with the contributor profile. -->
+                            <show>public</show>
+                            <excludePackageNames>com.nsdev.lettergenerator.internal,com.nsdev.lettergenerator.internal.*</excludePackageNames>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
                 <version>${spotless.version}</version>
@@ -191,4 +225,23 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>internal-javadocs</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <show>private</show>
+                            <excludePackageNames combine.self="override"/>
+                            <outputDirectory>${project.build.directory}/internal-docs</outputDirectory>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

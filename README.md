@@ -53,7 +53,7 @@ From this repository:
 ./mvnw clean install
 ```
 
-This runs formatting checks, compilation with warnings treated as errors, integration tests and Checkstyle, builds the binary/sources JARs, and installs the artifact into your local Maven repository. An initial build needs access to Maven repositories to download dependencies.
+This runs formatting checks, compilation with warnings treated as errors, integration tests and Checkstyle, generates the browsable API documentation, builds the binary/sources/Javadoc JARs, and installs the artifact into your local Maven repository. An initial build needs access to Maven repositories to download dependencies.
 
 In the consuming application's `pom.xml`:
 
@@ -65,7 +65,7 @@ In the consuming application's `pom.xml`:
 </dependency>
 ```
 
-The build produces `target/letter-generator-1.0.0-SNAPSHOT.jar` and its sources JAR. Maven Wrapper downloads Maven 3.9.11 on first use.
+The build produces `target/letter-generator-1.0.0-SNAPSHOT.jar`, its sources JAR, and `target/letter-generator-1.0.0-SNAPSHOT-javadoc.jar`. Open `target/apidocs/index.html` for the API website. Maven Wrapper downloads Maven 3.9.11 on first use.
 
 Dependencies are transitive: Apache FOP Core **2.11**, Jackson Databind **2.22.3**, Apache PDFBox **3.0.8**, jsoup **1.23.2**, and Apache Commons Text **1.15.0**.
 
@@ -78,6 +78,22 @@ export JAVA_HOME="$HOME/.local/share/letter-pdf-tools/jdk-17.0.20.1+1"
 export PATH="$JAVA_HOME/bin:$PATH"
 ./mvnw clean install
 ```
+
+### Generate the Javadoc website
+
+```sh
+./mvnw javadoc:javadoc
+```
+
+Open `target/apidocs/index.html`. The public API documentation is also generated and attached as a JAR by `./mvnw package`, `verify` and `install`. Documentation errors and warnings fail the build. The pinned [Maven Javadoc Plugin](https://maven.apache.org/plugins/maven-javadoc-plugin/usage.html) runs Javadoc with Java 17 source compatibility and UTF-8 encoding. After the initial plugin/dependency download, documentation generation requires no network access.
+
+The normal website and distributed Javadoc JAR exclude implementation packages under `internal`. For a contributor view including private helpers:
+
+```sh
+./mvnw -Pinternal-javadocs javadoc:javadoc
+```
+
+Open `target/internal-docs/apidocs/index.html`. This keeps contributor documentation separate from the public website. The JAR attached during packaging remains public API documentation, including when this profile is active. Both generated websites stay under the ignored `target` directory.
 
 ## 2. Generate your first PDF without font configuration
 
