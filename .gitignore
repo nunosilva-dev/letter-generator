@@ -3,6 +3,7 @@
 *.log
 .idea/
 *.iml
+__pycache__/
 /website/node_modules/
 /website/.astro/
 /website/dist/

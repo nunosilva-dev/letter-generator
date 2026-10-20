@@ -9,6 +9,7 @@
     <version>1.0.0</version>
     <name>Letter Generator</name>
     <description>Framework-free Java 17 library for PDF letters.</description>
+    <url>https://nunosilva-dev.github.io/letter-generator/</url>
 
     <licenses>
         <license>
@@ -17,6 +18,22 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <developers>
+        <developer>
+            <id>nunosilva-dev</id>
+            <name>Nuno Silva</name>
+            <email>nunosilva.code@gmail.com</email>
+            <url>https://github.com/nunosilva-dev</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/nunosilva-dev/letter-generator.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/nunosilva-dev/letter-generator.git</developerConnection>
+        <url>https://github.com/nunosilva-dev/letter-generator</url>
+        <tag>v${project.version}</tag>
+    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -257,6 +274,47 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>release</id>
+            <properties>
+                <gpg.keyname>EBD500D0F60FEF497CBC62091CE8424378E708D5</gpg.keyname>
+                <!-- A dry run creates the complete bundle without contacting Central. -->
+                <central.skipUpload>false</central.skipUpload>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.8</version>
+                        <configuration>
+                            <bestPractices>true</bestPractices>
+                            <passphraseEnvName>GPG_PASSPHRASE</passphraseEnvName>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-release-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.12.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <deploymentName>${project.groupId}:${project.artifactId}:${project.version}</deploymentName>
+                            <autoPublish>false</autoPublish>
+                            <waitUntil>validated</waitUntil>
+                            <skipUpload>${central.skipUpload}</skipUpload>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>internal-javadocs</id>
             <build>
