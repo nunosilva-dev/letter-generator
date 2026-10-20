@@ -24,17 +24,19 @@ To run the downloadable consumer project against the local development artifact,
 
 The repository's **Settings → Pages → Build and deployment → Source** must be **GitHub Actions**. No personal access token or Maven Central credentials are required.
 
-The tracked workflow is [`.github/workflows/docs.yml`](../.github/workflows/docs.yml):
+The tracked entry-point workflow is [`.github/workflows/docs.yml`](../.github/workflows/docs.yml), which calls the shared read-only [verification workflow](../.github/workflows/verify.yml):
 
 - Pull requests targeting `main` run the complete verification job and never deploy.
 - Pushes to `main`, including merged pull requests, run verification and deploy only after it succeeds.
 - Manual runs from the Actions tab verify the selected branch; deployment is allowed only when that branch is `main`.
 
-The `Java 17 and documentation` check runs formatting, warnings-as-errors compilation, the full Java suite, Checkstyle, strict public Javadocs, website tests, reference checks, the production build, link/asset/anchor checks and all eight standalone consumer examples. It uses JDK 17, Node 24 and the pnpm version declared in `package.json`, with a frozen lockfile. The Maven artifact is installed only in the runner's local repository for consumer checks; this workflow does not publish the library.
+The `Verify project / Java 17 and documentation` check runs release eligibility tests, formatting, warnings-as-errors compilation, the full Java suite, Checkstyle, strict public Javadocs, website tests, reference checks, the production build, link/asset/anchor checks and all eight standalone consumer examples. It uses JDK 17, Node 24 and the pnpm version declared in `package.json`, with a frozen lockfile. The Maven artifact is installed only in the runner's local repository for consumer checks; this workflow does not publish the library.
 
 Only `website/dist` becomes the Pages artifact. Pages write and OIDC permissions belong to the deployment job; pull request verification has read-only repository access. Actions are pinned to reviewed commit SHAs. Concurrent pull request runs are cancelled when superseded; `main` deployments are allowed to finish.
 
-After merging, follow **Actions → Documentation → Deploy documentation** for deployment status and the resulting URL. The `github-pages` environment can be restricted to `main` under repository environment settings. The stable `Java 17 and documentation` check can be required by `main` branch protection after its first successful run.
+After merging, follow **Actions → Documentation → Deploy documentation** for deployment status and the resulting URL. The `github-pages` environment can be restricted to `main` under repository environment settings. Require the shared verification check in `main` branch protection after its first successful run; if a rule previously required the standalone job, select its new `Verify project / Java 17 and documentation` name after this refactor.
+
+Maven Central publishing uses a separate tag-triggered workflow with the same verification and a final manual publication step in Central Portal; see [maintainer release instructions](../RELEASING.md).
 
 ## Base paths and authored links
 

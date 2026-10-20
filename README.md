@@ -50,7 +50,7 @@ Use JDK 17 for project acceptance. Maven Wrapper manages Maven 3.9.11; a global 
 
 On Windows use `mvnw.cmd`. The first build downloads dependencies. Formatting, compiler warnings-as-errors, tests, Checkstyle and strict Javadocs are checked. Tests generate PDFs and PNG previews under ignored `target/examples/`.
 
-The build produces binary, sources and public Javadoc JARs. It currently packages actual implementation sources; choose publication/source-distribution settings before deploying artifacts.
+The build produces binary, sources and public Javadoc JARs. The sources JAR contains the library's implementation sources, distributed under Apache License 2.0.
 
 Generate only the API documentation:
 
@@ -75,6 +75,8 @@ The production static output is `website/dist/`. No publishing or deployment hap
 ## Contributing
 
 [CONTRIBUTING.md](CONTRIBUTING.md) maps packages and authoring/rendering paths, explains conventions, and describes adding a template tag. Internal plans and implementation notes remain under ignored `docs/`. Keep user-facing instructions in the website rather than duplicating the manual in this README.
+
+Maintainers: [RELEASING.md](RELEASING.md) explains Maven Central credentials, signing, local release dry runs, version tags and the final manual publication step. Normal builds and documentation deployments never publish the library.
 
 ## Licence
 
