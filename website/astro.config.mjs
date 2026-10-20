@@ -1,15 +1,23 @@
 import { defineConfig } from 'astro/config';
+import { satteri } from '@astrojs/markdown-satteri';
 import starlight from '@astrojs/starlight';
 import { version } from './scripts/project.mjs';
+import { site, base } from './scripts/site.mjs';
+import { basePathPlugin } from './scripts/lib/base-path-plugin.mjs';
 
 export default defineConfig({
+  site,
+  base,
+  trailingSlash: 'always',
   output: 'static',
+  markdown: { processor: satteri({ mdastPlugins: [basePathPlugin({ base })] }) },
   integrations: [starlight({
     title: 'Letter Generator',
     description: 'The complete developer manual for creating PDF letters with Java, JSON and letter HTML.',
     favicon: '/favicon.svg',
     customCss: ['./src/styles/custom.css'],
     components: { SiteTitle: './src/components/SiteTitle.astro' },
+    routeMiddleware: './src/route-data.ts',
     head: [{ tag: 'meta', attrs: { name: 'letter-generator-version', content: version } }],
     sidebar: [
       { label: 'Start here', items: [

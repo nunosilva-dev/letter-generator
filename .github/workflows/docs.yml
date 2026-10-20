@@ -1,0 +1,98 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: Java 17 and documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: |
+            pom.xml
+            .mvn/wrapper/maven-wrapper.properties
+
+      - name: Verify library, generate examples and install the local artifact
+        run: ./mvnw -B -ntp clean install
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Set up the project's pnpm version
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          package_json_file: website/package.json
+          cache: true
+          cache_dependency_path: website/pnpm-lock.yaml
+
+      - name: Install documentation dependencies
+        run: pnpm --dir website install --frozen-lockfile
+
+      - name: Test and build the documentation
+        run: pnpm --dir website verify
+
+      - name: Compile and run the standalone consumer examples
+        shell: bash
+        run: |
+          ./mvnw -B -ntp -f target/documentation/consumer/pom.xml package dependency:copy-dependencies
+          consumer=target/documentation/consumer
+          classpath="$consumer/target/classes:$consumer/target/dependency/*"
+          output=target/documentation/smoke
+          mkdir -p "$output"
+          for api in Fluent Typed Json Html; do
+            java -Djava.awt.headless=true -cp "$classpath" "${api}Quickstart" "$output/quickstart-${api}.pdf"
+          done
+          java -Djava.awt.headless=true -cp "$classpath" com.nsdev.lettergenerator.examples.EnergyExamples "$output"
+
+      - name: Upload the verified Pages site
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: website/dist
+
+  deploy:
+    name: Deploy documentation
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Deploy the verified site
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

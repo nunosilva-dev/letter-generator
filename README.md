@@ -38,7 +38,7 @@ The complete manual now lives in the tracked [documentation website](website/REA
 - [Feature guides](website/src/content/docs/guides), [every supported HTML tag](website/src/content/docs/reference/html-tags.mdx), [CSS/units](website/src/content/docs/reference/css.mdx), and [JSON model reference](website/src/content/docs/reference/json-model.mdx).
 - [Anonymized energy-letter walkthrough](website/src/content/docs/examples/energy-letter.mdx), [generated PDF gallery](website/src/content/docs/examples/gallery.mdx), [troubleshooting](website/src/content/docs/support/troubleshooting.md), and [supported limits](website/src/content/docs/support/limits.md).
 
-MDX pages include components and generated references; use the local website for the full reading experience. It provides search, remembered API tabs, downloadable runnable examples and public Javadocs. No hosted URL is configured yet.
+MDX pages include components and generated references; use the website for the full reading experience. It provides search, remembered API tabs, downloadable runnable examples and public Javadocs. The Pages workflow publishes successful `main` builds to [the documentation site](https://nunosilva-dev.github.io/letter-generator/); see [deployment instructions](website/README.md).
 
 ## Build and verify
 

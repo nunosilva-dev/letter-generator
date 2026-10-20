@@ -1,10 +1,11 @@
 ---
+import { withBase } from '../../scripts/site.mjs';
 interface Props { name: string; title: string; caption?: string; }
 const { name, title, caption } = Astro.props;
 ---
 <figure class="example-preview">
-  <a href={`/examples/${name}.pdf`} aria-label={`Open ${title} PDF`}><img src={`/examples/${name}.png`} alt={`${title}: first page of the generated letter`} loading="lazy" width="595" height="842" /></a>
-  <figcaption>{caption || title} <a href={`/examples/${name}.pdf`}>Open PDF ↗</a></figcaption>
+  <a href={withBase(`/examples/${name}.pdf`)} aria-label={`Open ${title} PDF`}><img src={withBase(`/examples/${name}.png`)} alt={`${title}: first page of the generated letter`} loading="lazy" width="595" height="842" /></a>
+  <figcaption>{caption || title} <a href={withBase(`/examples/${name}.pdf`)}>Open PDF ↗</a></figcaption>
 </figure>
 <style>
 .example-preview{margin:2rem 0;border:1px solid var(--sl-color-gray-5);border-radius:.75rem;background:var(--sl-color-gray-6);padding:1.25rem}.example-preview img{display:block;max-height:42rem;width:auto;max-width:100%;margin:auto;background:white;box-shadow:0 12px 32px #0002}.example-preview figcaption{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;font-size:.875rem;padding-top:1.25rem;color:var(--sl-color-gray-2)}

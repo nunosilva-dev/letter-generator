@@ -1,7 +1,8 @@
 ---
 import { version } from '../../scripts/project.mjs';
+import { withBase } from '../../scripts/site.mjs';
 ---
-<a href="/" class="site-title" aria-label="Letter Generator documentation home">
+<a href={withBase('/')} class="site-title" aria-label="Letter Generator documentation home">
   <svg width="28" height="32" viewBox="0 0 28 32" fill="none" aria-hidden="true"><path d="M4 1h13l7 7v22H4z" stroke="currentColor" stroke-width="1.5"/><path d="M17 1v8h7M9 15h10M9 20h10M9 25h6" stroke="currentColor" stroke-width="1.5"/></svg>
   <span>Letter Generator<small>{version} documentation</small></span>
 </a>

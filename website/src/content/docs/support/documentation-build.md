@@ -39,4 +39,8 @@ The tag/CSS/attribute catalogue is checked against the parser's explicit vocabul
 
 ## Hosting and versions
 
-The build serves from a domain root and can be hosted as static files without a Java server. A live editable rendering playground is not part of this site. The displayed documentation version comes from the library POM; preserve release-specific builds when multiple supported releases exist. There is currently a single checkout version rather than a selector containing unavailable versions.
+The build is configured for [GitHub Pages](https://nunosilva-dev.github.io/letter-generator/), under `/letter-generator/`. Run `pnpm dev` or `pnpm preview` and open that same base path locally. `scripts/site.mjs` controls the origin and base; authored Markdown/MDX links are prefixed at build time, and the link checker rejects links that escape the base. `website/dist` contains the files to upload without adding another directory around them.
+
+`.github/workflows/docs.yml` verifies pull requests targeting `main`. Successful pushes to `main` also deploy the verified site to the `github-pages` environment. Manual runs can deploy only from `main`. The workflow runs Java 17 acceptance, website tests/build/link checks and all eight standalone consumer examples before uploading the Pages artifact. Select **GitHub Actions** as the Pages publishing source in repository settings. No library release or Maven Central publication occurs in this workflow.
+
+A live editable rendering playground is not part of this site. The displayed documentation version comes from the library POM; preserve release-specific builds when multiple supported releases exist. There is currently a single checkout version rather than a selector containing unavailable versions.
