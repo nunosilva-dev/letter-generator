@@ -7,6 +7,7 @@ export async function createConsumerProject(root, destination, version) {
   const energy = path.join(java, 'com/nsdev/lettergenerator/examples');
   await mkdir(energy, { recursive: true });
   await mkdir(resources, { recursive: true });
+  await cp(path.join(root, 'LICENSE'), path.join(destination, 'LICENSE'));
   await cp(path.join(root, 'src/test/resources/documentation/java'), java, { recursive: true });
   await cp(path.join(root, 'src/test/resources/documentation/letters'), path.join(resources, 'letters'), { recursive: true });
   await cp(path.join(root, 'src/test/resources/letters/energy'), path.join(resources, 'letters/energy'), { recursive: true });
@@ -57,7 +58,7 @@ ${entries});
   <modelVersion>4.0.0</modelVersion>
   <groupId>example</groupId><artifactId>letter-generator-examples</artifactId><version>1.0.0</version>
   <properties><maven.compiler.release>17</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
-  <dependencies><dependency><groupId>com.nsdev</groupId><artifactId>letter-generator</artifactId><version>${version}</version></dependency></dependencies>
+  <dependencies><dependency><groupId>io.github.nunosilva-dev</groupId><artifactId>letter-generator</artifactId><version>${version}</version></dependency></dependencies>
   <build><plugins>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.14.1</version></plugin>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>2.8</version></plugin>
@@ -66,25 +67,25 @@ ${entries});
 `);
   await writeFile(path.join(destination, 'README.md'), `# Letter Generator runnable examples
 
-Requires JDK 17+ and Maven 3.9+. This project consumes only com.nsdev:letter-generator:${version}; it needs no library source checkout, test framework or internal API.
+Requires JDK 17+ and Maven 3.9+. This project consumes only io.github.nunosilva-dev:letter-generator:${version}; it needs no library source checkout, test framework or internal API.
 
-The current snapshot must already be available in your configured Maven repository or installed locally by the library provider. These instructions do not imply it is published on Maven Central.
+The library version must already be available in your configured Maven repository or installed locally. These instructions do not imply it is published on Maven Central.
 
 Build (Windows: replace the classpath colon below with a semicolon):
 
 \`\`\`sh
 mvn package dependency:copy-dependencies
-java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' FluentQuickstart
-java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' TypedQuickstart
-java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' JsonQuickstart
-java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' HtmlQuickstart
-java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' com.nsdev.lettergenerator.examples.EnergyExamples
+java -Djava.awt.headless=true -cp "target/classes:target/dependency/*" FluentQuickstart
+java -Djava.awt.headless=true -cp "target/classes:target/dependency/*" TypedQuickstart
+java -Djava.awt.headless=true -cp "target/classes:target/dependency/*" JsonQuickstart
+java -Djava.awt.headless=true -cp "target/classes:target/dependency/*" HtmlQuickstart
+java -Djava.awt.headless=true -cp "target/classes:target/dependency/*" com.nsdev.lettergenerator.examples.EnergyExamples
 \`\`\`
 
 Each quickstart writes letter.pdf (or its first command-line argument). EnergyExamples writes four separate PDFs to output/ (or its first argument). All identities, account identifiers, contacts and artwork in the energy example are fictional.
 
 Java sources are in src/main/java; templates, JSON, placeholder values and synthetic artwork are in src/main/resources/letters. DejaVu example fonts include their original license at src/main/resources/fonts/LICENSE.txt. The library itself does not bundle these fonts by default.
 
-The example programs are provided for use with the library. This download contains example code and resources, not the library implementation. Library distribution and its license are separate.
+The example programs are licensed under Apache License 2.0; see LICENSE. The fonts retain their own licence as described above. This download contains example code and resources, not the library implementation.
 `);
 }

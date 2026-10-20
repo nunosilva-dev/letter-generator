@@ -52,16 +52,6 @@ final class FoTableWriter {
     }
 
     /**
-     * Writes proportional columns, an independently spanned repeating header and body rows.
-     *
-     * @param table validated table
-     * @param style resolved table appearance
-     */
-    void write(TableBlock table, ResolvedStyle style) {
-        write(table, style, table.style());
-    }
-
-    /**
      * Writes a table with explicit inherited pagination overrides supplied by the block writer.
      *
      * @param table validated table

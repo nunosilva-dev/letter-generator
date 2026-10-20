@@ -84,7 +84,7 @@ The Maven Javadoc Plugin generates the API website and attaches its JAR during `
 ./mvnw -Pinternal-javadocs javadoc:javadoc   # Full contributor website, including private helpers
 ```
 
-Open `target/apidocs/index.html` for the public API or `target/internal-docs/apidocs/index.html` for the contributor view. The normal website and `target/letter-generator-1.0.0-SNAPSHOT-javadoc.jar` exclude implementation packages under `internal`. The attached JAR keeps that public scope even if the contributor profile is active. Full internal documentation is for navigating implementation; it does not extend the supported application contract.
+Open `target/apidocs/index.html` for the public API or `target/internal-docs/apidocs/index.html` for the contributor view. The normal website and `target/letter-generator-1.0.0-javadoc.jar` exclude implementation packages under `internal`. The attached JAR keeps that public scope even if the contributor profile is active. Full internal documentation is for navigating implementation; it does not extend the supported application contract.
 
 Both commands work offline with `-o` once the plugin and dependencies are cached. Automatic remote JDK documentation links are disabled to keep generation independent of external documentation servers. Generated websites stay under the ignored `target` directory. Update method and package documentation when their contracts change; comments must describe current behavior rather than proposed features.
 

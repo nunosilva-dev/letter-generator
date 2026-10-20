@@ -4,6 +4,18 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { copyPublicJavadocs, requireGeneratedAssets } from '../lib/assets.mjs';
+import { createConsumerProject } from '../lib/consumer-project.mjs';
+import { root as projectRoot } from '../project.mjs';
+
+test('downloadable examples carry the project licence alongside the font licence', async () => {
+  const destination = await mkdtemp(path.join(os.tmpdir(), 'letter-examples-'));
+  try {
+    await createConsumerProject(projectRoot, destination, '1.0.0');
+    assert.equal(await readFile(path.join(destination, 'LICENSE'), 'utf8'),
+      await readFile(path.join(projectRoot, 'LICENSE'), 'utf8'));
+    assert.match(await readFile(path.join(destination, 'src/main/resources/fonts/LICENSE.txt'), 'utf8'), /DejaVu/);
+  } finally { await rm(destination, { recursive: true, force: true }); }
+});
 
 test('missing Maven outputs fail with the preparation command and missing filenames', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'letter-docs-'));
@@ -34,9 +46,12 @@ test('public Javadocs retain navigation assets and the entry page', async () => 
     await mkdir(source);
     await writeFile(path.join(source, 'index.html'), '<html>API</html>');
     await writeFile(path.join(source, 'stylesheet.css'), 'body{}');
+    await mkdir(path.join(source, 'META-INF'));
+    await writeFile(path.join(source, 'META-INF/LICENSE'), 'Project licence');
     await copyPublicJavadocs(source, path.join(root, 'out'));
     assert.equal(await readFile(path.join(root, 'out/index.html'), 'utf8'), '<html>API</html>');
     assert.equal(await readFile(path.join(root, 'out/stylesheet.css'), 'utf8'), 'body{}');
+    assert.equal(await readFile(path.join(root, 'out/META-INF/LICENSE'), 'utf8'), 'Project licence');
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 

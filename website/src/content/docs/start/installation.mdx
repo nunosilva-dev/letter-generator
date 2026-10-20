@@ -12,11 +12,11 @@ Use JDK 17 or a compatible newer JDK. The artifact targets Java 17. The runtime 
 
 ## Add the dependency
 
-The current version is a development snapshot. It must be installed locally or available in your configured repository before these dependency declarations resolve. There is no public-release availability claim in this guide.
+The version shown below must be installed locally or available in your configured repository before these dependency declarations resolve. A version in this guide does not imply Maven Central availability.
 
 <Tabs syncKey="build-tool">
-  <TabItem label="Maven"><Code lang="xml" code={`<dependency>\n  <groupId>com.nsdev</groupId>\n  <artifactId>letter-generator</artifactId>\n  <version>${version}</version>\n</dependency>`} /></TabItem>
-  <TabItem label="Gradle"><Code lang="kotlin" code={`dependencies {\n    implementation("com.nsdev:letter-generator:${version}")\n}`} /></TabItem>
+  <TabItem label="Maven"><Code lang="xml" code={`<dependency>\n  <groupId>io.github.nunosilva-dev</groupId>\n  <artifactId>letter-generator</artifactId>\n  <version>${version}</version>\n</dependency>`} /></TabItem>
+  <TabItem label="Gradle"><Code lang="kotlin" code={`dependencies {\n    implementation("io.github.nunosilva-dev:letter-generator:${version}")\n}`} /></TabItem>
 </Tabs>
 
 The ordinary JAR has transitive runtime dependencies. Let your build tool resolve them; copying only the library JAR to a classpath is insufficient. The library uses Apache FOP for layout, PDFBox for supported PDF processing, jsoup for markup, Jackson for JSON and Commons Text for literal binding.
@@ -41,7 +41,7 @@ After making the artifact available:
 
 ```sh
 mvn package dependency:copy-dependencies
-java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' FluentQuickstart
+java -Djava.awt.headless=true -cp "target/classes:target/dependency/*" FluentQuickstart
 ```
 
 Run those commands in the extracted project. On Windows, replace the classpath `:` separator with `;`. The program writes `letter.pdf`; pass an output filename as its first argument to choose another location.

@@ -26,47 +26,6 @@ public final class TemplateCompiler {
     private TemplateCompiler() {}
 
     /**
-     * Parses one letter root, optionally binds existing node values, reads page/style defaults,
-     * registers supplied assets on a fresh builder, then runs the standard region handlers.
-     * Handlers execute in registry order, independent of source region order; the final builder
-     * resolves deferred header geometry and assembles the document.
-     *
-     * @param source non-null HTML fragment containing exactly one letter element
-     * @param values typed values used for map-only binding and finite directives; consulted only
-     *     when enabled
-     * @param assets non-null named image byte map without null keys/values; builder copies bytes
-     * @param substitute whether to resolve placeholders in parsed text and attribute values
-     * @return compiled immutable model, before the generator's shared semantic validation pass
-     * @throws IllegalStateException if the required main region produces no body blocks
-     * @throws IllegalArgumentException if source is null or builder geometry arguments are invalid
-     * @throws com.nsdev.lettergenerator.exception.InvalidLetterException if parsing, binding,
-     *     region structure or supported markup rules fail
-     */
-    public static LetterDocument compile(
-            String source, Map<String, ?> values, Map<String, byte[]> assets, boolean substitute) {
-        return compile(source, values, assets, substitute, null);
-    }
-
-    /**
-     * Compiles with role defaults known before builder fallbacks are applied.
-     *
-     * @param source supported markup
-     * @param values typed map-only bindings
-     * @param assets named image bytes
-     * @param substitute whether replacements are enabled
-     * @param theme optional document theme
-     * @return immutable unresolved composition model
-     */
-    public static LetterDocument compile(
-            String source,
-            Map<String, ?> values,
-            Map<String, byte[]> assets,
-            boolean substitute,
-            LetterTheme theme) {
-        return compile(prepare(source), values, assets, substitute, theme, null);
-    }
-
-    /**
      * Parses once into an opaque owned prototype for repeated safe binding.
      *
      * @param source supported source
@@ -95,15 +54,17 @@ public final class TemplateCompiler {
             LetterTheme theme,
             DocumentSettings settings) {
         Element root = prototype.copy();
-        LocaleSettings locale =
-                TemplatePage.locale(root, settings == null ? null : settings.locale());
+        LocaleSettings defaults = settings == null ? LocaleSettings.defaults() : settings.locale();
+        LocaleSettings locale;
         if (substitute) {
             var wrapper = new Element("body").appendChild(root);
-            new TemplateBindings(values, locale).apply(root);
+            locale = new TemplateBindings(values, defaults).apply(root);
             MarkupSupport.require(
                     root.parent() == wrapper,
                     root,
                     "Template conditions removed the required letter root");
+        } else {
+            locale = TemplatePage.locale(root, defaults);
         }
         TemplatePage page = TemplatePage.read(root);
         var builder = page.builder();

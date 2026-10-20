@@ -36,23 +36,6 @@ public final class FopRenderer {
     private FopRenderer() {}
 
     /**
-     * Renders one composition with supplied resource/font snapshots and gathers layout diagnostics.
-     *
-     * @param composition generated FO and the images registered by its composer
-     * @param fonts immutable registered fonts available to this render
-     * @return output bytes plus selected masters and all rejected-layout diagnostics
-     * @throws PdfGenerationException if configuration, XML transformation or the FOP engine fails
-     */
-    public static FopRenderResult render(FoComposer.Composition composition, FontRegistry fonts) {
-        return render(
-                composition,
-                fonts,
-                DocumentSettings.defaults(),
-                RenderOptions.defaults(),
-                HyphenationPatterns.empty());
-    }
-
-    /**
      * Renders with native metadata, structure or archival options and owned dictionaries.
      *
      * @param composition escaped FO and registered images

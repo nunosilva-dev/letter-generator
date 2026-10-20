@@ -29,55 +29,6 @@ public final class TemplateInspector {
     private TemplateInspector() {}
 
     /**
-     * Aggregates missing variable occurrences and invalid referenced assets before semantic checks.
-     *
-     * @param source supported letter markup
-     * @param values literal map-only bindings
-     * @param assets named encoded image bytes
-     * @param substitute whether binding is enabled
-     * @param generator font-aware semantic validator
-     * @return immutable authoring report
-     */
-    public static ValidationReport inspect(
-            String source,
-            Map<String, ?> values,
-            Map<String, byte[]> assets,
-            boolean substitute,
-            LetterPdfGenerator generator) {
-        return inspect(
-                source,
-                values,
-                assets,
-                substitute,
-                generator,
-                () -> TemplateCompiler.compile(source, values, assets, substitute));
-    }
-
-    /**
-     * Inspects with document-local theme/component configuration applied before semantic
-     * validation. Compilation is attempted only after all binding and asset checks pass; semantic
-     * validation reports the first remaining error. No layout engine runs, so fit is not
-     * guaranteed.
-     *
-     * @param source supported letter markup
-     * @param values literal map-only bindings
-     * @param assets named encoded image bytes
-     * @param substitute whether binding is enabled
-     * @param generator font-aware validator
-     * @param compile deferred model compilation after binding/asset preflight
-     * @return immutable authoring report
-     */
-    public static ValidationReport inspect(
-            String source,
-            Map<String, ?> values,
-            Map<String, byte[]> assets,
-            boolean substitute,
-            LetterPdfGenerator generator,
-            Supplier<LetterDocument> compile) {
-        return inspect(source, values, assets, substitute, null, generator, compile);
-    }
-
-    /**
      * Inspects source using the same explicit settings as its builder.
      *
      * @param source supported markup
@@ -144,7 +95,7 @@ public final class TemplateInspector {
             Element parsed = prototype.copy();
             if (substitute) {
                 LocaleSettings locale =
-                        TemplatePage.locale(parsed, settings == null ? null : settings.locale());
+                        settings == null ? LocaleSettings.defaults() : settings.locale();
                 new TemplateBindings(
                                 values,
                                 locale,

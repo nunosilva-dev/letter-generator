@@ -27,16 +27,6 @@ final class TemplateExpansion {
     private final BiConsumer<String, String> missing;
 
     /**
-     * Creates one scope traversal.
-     *
-     * @param values owned scope
-     * @param locale explicit formatting choices
-     */
-    TemplateExpansion(Map<String, ?> values, LocaleSettings locale) {
-        this(values, locale, null);
-    }
-
-    /**
      * Creates one scope with optional scalar diagnostic aggregation.
      *
      * @param values owned scope
@@ -57,6 +47,17 @@ final class TemplateExpansion {
      * @param node trusted parsed node
      */
     void apply(Node node) {
+        apply(node, true);
+    }
+
+    /**
+     * Expands one node, optionally retaining root attributes that were already bound for locale
+     * resolution. Descendants always receive their own single scalar substitution pass.
+     *
+     * @param node trusted parsed node
+     * @param bindScalar whether this node's scalar values still require binding
+     */
+    void apply(Node node, boolean bindScalar) {
         if (node instanceof Element element) {
             if (element.hasAttr("data-each")) {
                 repeat(element);
@@ -85,7 +86,9 @@ final class TemplateExpansion {
                 return;
             }
         }
-        bindings.scalar(node);
+        if (bindScalar) {
+            bindings.scalar(node);
+        }
         for (Node child : new ArrayList<>(node.childNodes())) {
             apply(child);
         }

@@ -4,6 +4,7 @@ import com.nsdev.lettergenerator.exception.InvalidLetterException;
 import com.nsdev.lettergenerator.internal.markup.MarkupSupport;
 import com.nsdev.lettergenerator.localization.LocaleSettings;
 import com.nsdev.lettergenerator.localization.ValueFormats;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import org.apache.commons.text.StringSubstitutor;
@@ -27,17 +28,6 @@ final class TemplateBindings {
 
     /** Current scalar source path, owned by this traversal. */
     private String path;
-
-    /**
-     * Configures a map-only lookup: no environment/system/URL lookups, nested variable names,
-     * recursive value expansion or default-value delimiter. Missing variables are errors. The
-     * compiler uses this instance only during one traversal.
-     *
-     * @param values map-only replacement strings
-     */
-    TemplateBindings(Map<String, ?> values) {
-        this(values, LocaleSettings.defaults());
-    }
 
     /**
      * Configures literal scalar substitution within one immutable typed scope.
@@ -80,14 +70,37 @@ final class TemplateBindings {
     }
 
     /**
-     * Mutates existing text and attribute values recursively after parsing, so replacements remain
-     * literal data and cannot add elements or attributes. Tag and attribute names are never
-     * substituted; CSS receives declaration-level checks before setting its style value.
+     * Binds root attributes once before resolving their locale, then expands content with that
+     * locale. Root replacement text is never evaluated again. Inspection can continue with its
+     * default locale when missing root bindings prevent locale resolution.
      *
-     * @param node parsed node to traverse
+     * @param root parsed letter root to traverse
+     * @return bound root formatting choices
      */
-    void apply(Node node) {
-        new TemplateExpansion(values, locale, missing).apply(node);
+    LocaleSettings apply(Element root) {
+        var missingRootValues = new HashSet<String>();
+        TemplateBindings rootBindings =
+                missing == null
+                        ? this
+                        : new TemplateBindings(
+                                values,
+                                locale,
+                                (key, location) -> {
+                                    missingRootValues.add(location);
+                                    missing.accept(key, location);
+                                });
+        rootBindings.scalar(root);
+        LocaleSettings resolved;
+        try {
+            resolved = TemplatePage.locale(root, locale);
+        } catch (InvalidLetterException exception) {
+            if (missingRootValues.isEmpty()) {
+                throw exception;
+            }
+            resolved = locale;
+        }
+        new TemplateExpansion(values, resolved, missing).apply(root, false);
+        return resolved;
     }
 
     /**

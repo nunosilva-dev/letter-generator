@@ -35,32 +35,6 @@ record TemplatePage(
         Double paperHeightMm,
         Orientation orientation) {
     /**
-     * Preserves the original standard-paper internal constructor.
-     *
-     * @param size named paper
-     * @param marginsMm margins
-     * @param headerHeightMm header height
-     * @param footerHeightMm footer height
-     * @param defaults text defaults
-     */
-    TemplatePage(
-            PageSize size,
-            double marginsMm,
-            double headerHeightMm,
-            double footerHeightMm,
-            Style defaults) {
-        this(
-                size,
-                marginsMm,
-                headerHeightMm,
-                footerHeightMm,
-                defaults,
-                null,
-                null,
-                Orientation.PORTRAIT);
-    }
-
-    /**
      * Reads allowlisted root geometry, locale and typography options.
      *
      * @param root parsed letter root
@@ -172,12 +146,11 @@ record TemplatePage(
                         .page(size)
                         .marginsMm(marginsMm)
                         .headerHeightMm(headerHeightMm)
-                        .footerHeightMm(footerHeightMm)
-                        .orientation(orientation);
+                        .footerHeightMm(footerHeightMm);
         if (paperWidthMm != null) {
             builder.pageSizeMm(paperWidthMm, paperHeightMm);
         }
-        return builder;
+        return builder.orientation(orientation);
     }
 
     /**

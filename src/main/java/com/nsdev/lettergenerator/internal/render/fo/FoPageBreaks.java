@@ -1,6 +1,11 @@
 package com.nsdev.lettergenerator.internal.render.fo;
 
 import com.nsdev.lettergenerator.internal.xml.XmlBuilder;
+import com.nsdev.lettergenerator.model.block.Block;
+import com.nsdev.lettergenerator.model.block.BoxBlock;
+import com.nsdev.lettergenerator.model.block.GroupBlock;
+import com.nsdev.lettergenerator.model.block.PageBreakBlock;
+import java.util.List;
 
 /** Keeps explicit page transitions distinct when FOP removes empty/zero-height blocks. */
 final class FoPageBreaks {
@@ -14,6 +19,22 @@ final class FoPageBreaks {
 
     /** Prevents instances of the page-transition serializer. */
     private FoPageBreaks() {}
+
+    /**
+     * Finds explicit transitions in containers that permit body page breaks.
+     *
+     * @param content validated ordered blocks
+     * @return whether this flow needs a nonempty initial anchor
+     */
+    static boolean contains(List<Block> content) {
+        return content.stream()
+                .anyMatch(
+                        block ->
+                                block instanceof PageBreakBlock
+                                        || block instanceof GroupBlock group
+                                                && contains(group.blocks())
+                                        || block instanceof BoxBlock box && contains(box.blocks()));
+    }
 
     /**
      * Writes a one-millipoint nonbreaking-space line. An initial anchor preserves a blank first

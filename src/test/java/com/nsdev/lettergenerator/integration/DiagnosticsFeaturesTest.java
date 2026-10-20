@@ -13,7 +13,6 @@ import com.nsdev.lettergenerator.diagnostics.DiagnosticPhase;
 import com.nsdev.lettergenerator.exception.InvalidLetterException;
 import com.nsdev.lettergenerator.exception.PdfGenerationException;
 import com.nsdev.lettergenerator.fixtures.LetterFixtures;
-import com.nsdev.lettergenerator.internal.template.TemplateInspector;
 import com.nsdev.lettergenerator.model.block.PageBreakBlock;
 import com.nsdev.lettergenerator.render.RenderOptions;
 import java.nio.charset.StandardCharsets;
@@ -29,14 +28,12 @@ class DiagnosticsFeaturesTest {
     @Test
     void inspectionAggregatesEveryMissingOccurrenceAndAssetFailure() {
         var report =
-                TemplateInspector.inspect(
-                        "<letter><main><p>${missing} ${missing} ${another}</p>"
-                                + "<img src='asset:absent' width='20mm'/><img src='asset:bad' width='20mm'/>"
-                                + "<img src='https://example.invalid/image.png' width='20mm'/></main></letter>",
-                        Map.of(),
-                        Map.of("bad", new byte[] {1, 2, 3}),
-                        true,
-                        generator);
+                Letter.template(
+                                "<letter><main><p>${missing} ${missing} ${another}</p>"
+                                        + "<img src='asset:absent' width='20mm'/><img src='asset:bad' width='20mm'/>"
+                                        + "<img src='https://example.invalid/image.png' width='20mm'/></main></letter>")
+                        .asset("bad", new byte[] {1, 2, 3})
+                        .validate(generator);
         assertFalse(report.isValid());
         assertEquals(
                 3,
@@ -52,28 +49,19 @@ class DiagnosticsFeaturesTest {
     @Test
     void inspectionUsesLiteralMapOnlyBindingAndFindsSemanticErrors() {
         assertTrue(
-                TemplateInspector.inspect(
-                                "<letter><main><p>${value}</p></main></letter>",
-                                Map.of("value", "<script>${unexpanded}</script>"),
-                                Map.of(),
-                                true,
-                                generator)
+                Letter.template("<letter><main><p>${value}</p></main></letter>")
+                        .values(Map.of("value", "<script>${unexpanded}</script>"))
+                        .validate(generator)
                         .isValid());
         var report =
-                TemplateInspector.inspect(
-                        "<letter><main><p>${sys:user.home} ${missing:-default}</p></main></letter>",
-                        Map.of(),
-                        Map.of(),
-                        true,
-                        generator);
+                Letter.template(
+                                "<letter><main><p>${sys:user.home} ${missing:-default}</p></main></letter>")
+                        .validate(generator);
         assertEquals(2, report.diagnostics().size());
         assertFalse(
-                TemplateInspector.inspect(
-                                "<letter style='font-family:unregistered'><main><p>Text</p></main></letter>",
-                                Map.of(),
-                                Map.of(),
-                                true,
-                                generator)
+                Letter.template(
+                                "<letter style='font-family:unregistered'><main><p>Text</p></main></letter>")
+                        .validate(generator)
                         .isValid());
     }
 

@@ -133,6 +133,9 @@ final class FoLayoutWriter {
         xml.start("table-column").attribute("column-width", "proportional-column-width(1)").end();
         xml.start("table-body").start("table-row").start("table-cell");
         appearance(box.appearance());
+        if (FoPageBreaks.contains(box.blocks())) {
+            FoPageBreaks.anchor(xml, false);
+        }
         content.accept(box.blocks(), typography(box.style()));
         xml.end().end().end().end().end();
     }

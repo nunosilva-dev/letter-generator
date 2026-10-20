@@ -1,6 +1,6 @@
 # Documentation website
 
-Astro/Starlight instruction manual for `com.nsdev:letter-generator`. This is a local, statically built site; no hosting account, remote repository or deployment has been created.
+Astro/Starlight instruction manual for `io.github.nunosilva-dev:letter-generator`. This is a local, statically built site; no hosting account, remote repository or deployment has been created.
 
 ## Build and preview
 
@@ -30,6 +30,6 @@ To run the downloadable consumer project against the local development artifact,
 - Existing energy test fixtures feed the four reference-letter inputs, assets and downloadable standalone examples. Their content is fictional.
 - `scripts/prepare-assets.mjs`: explicit publication boundary; only approved example assets/source and **public** Javadocs enter generated public directories. Actual library implementation sources are not included in the example ZIP.
 
-Internal plans remain in ignored `../docs/`. `node_modules`, `.astro`, `dist` and generated `public/{api,examples,downloads}` directories are ignored. The website displays the version from the library POM; it currently documents a development snapshot and does not claim artifact availability on Maven Central.
+Internal plans remain in ignored `../docs/`. `node_modules`, `.astro`, `dist`, generated `public/{api,examples,downloads}` directories and `public/LICENSE.txt` are ignored. The website displays the version from the library POM; it does not claim artifact availability on Maven Central.
 
 A live editing/rendering playground, multiple-version selector and remote publishing are outside the initial site. The library's Maven sources JAR is a separate distribution setting and is not changed by website preparation.

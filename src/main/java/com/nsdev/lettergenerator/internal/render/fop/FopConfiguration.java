@@ -38,21 +38,6 @@ final class FopConfiguration {
     private FopConfiguration() {}
 
     /**
-     * Builds one factory from generated font XML and a strict per-render memory resolver; it
-     * enables no system-font scanning or external resource fallback.
-     *
-     * @param images composer-assigned image URIs and in-memory bytes for this attempt
-     * @param fonts immutable registered-font snapshot supplied by the generator
-     * @return a new factory restricted to the registered in-memory resources
-     * @throws IOException if reading the generated configuration or a required resource fails
-     * @throws SAXException if FOP cannot parse the generated configuration
-     */
-    static FopFactory factory(Map<URI, byte[]> images, FontRegistry fonts)
-            throws IOException, SAXException {
-        return factory(images, fonts, RenderOptions.defaults(), HyphenationPatterns.empty());
-    }
-
-    /**
      * Creates a restricted native factory with optional PDF/A and explicit dictionaries.
      *
      * @param images owned image resources

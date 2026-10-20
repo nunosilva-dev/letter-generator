@@ -7,6 +7,7 @@ import { createConsumerProject } from './lib/consumer-project.mjs';
 
 await requireGeneratedAssets(root);
 const publicRoot = path.join(website, 'public');
+await cp(path.join(root, 'LICENSE'), path.join(publicRoot, 'LICENSE.txt'));
 for (const name of ['api', 'examples', 'downloads']) {
   await rm(path.join(publicRoot, name), { recursive: true, force: true });
   await mkdir(path.join(publicRoot, name), { recursive: true });

@@ -33,7 +33,7 @@ The [example ZIP](/downloads/letter-generator-examples.zip) already contains all
 
 ```sh
 mvn package dependency:copy-dependencies
-java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' FluentQuickstart
+java -Djava.awt.headless=true -cp "target/classes:target/dependency/*" FluentQuickstart
 ```
 
 Use `TypedQuickstart`, `JsonQuickstart` or `HtmlQuickstart` for the other routes. Windows uses `;` between classpath entries. Each writes `letter.pdf`, or the first supplied argument. The parent directory of a chosen output path must exist.

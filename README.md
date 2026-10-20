@@ -2,7 +2,7 @@
 
 A Java 17 library for generating PDF letters through fluent Java, immutable Java models, JSON or letter HTML. Shared rendering supports company stationery, pagination, rich tables, reusable themes/components, localized values, PNG/JPEG/static SVG, visible signatures and optional PDF packs.
 
-Coordinates: **`com.nsdev:letter-generator`**. The current development version is **`1.0.0-SNAPSHOT`**; this does not imply public Maven Central availability.
+Coordinates: **`io.github.nunosilva-dev:letter-generator`**. Version: **`1.0.0`**; this does not imply public Maven Central availability.
 
 ## Start with a letter
 
@@ -10,9 +10,9 @@ Add the artifact from a repository where it is available, or install it locally 
 
 ```xml
 <dependency>
-  <groupId>com.nsdev</groupId>
+  <groupId>io.github.nunosilva-dev</groupId>
   <artifactId>letter-generator</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 </dependency>
 ```
 
@@ -75,3 +75,7 @@ The production static output is `website/dist/`. No publishing or deployment hap
 ## Contributing
 
 [CONTRIBUTING.md](CONTRIBUTING.md) maps packages and authoring/rendering paths, explains conventions, and describes adding a template tag. Internal plans and implementation notes remain under ignored `docs/`. Keep user-facing instructions in the website rather than duplicating the manual in this README.
+
+## Licence
+
+Letter Generator and its examples are licensed under [Apache License 2.0](LICENSE). Dependencies and example fonts retain their own licences and notices.

@@ -35,15 +35,6 @@ public final class DocumentRenderer {
     private final HyphenationPatterns patterns;
 
     /**
-     * Binds rendering to one generator's immutable font snapshot.
-     *
-     * @param fonts trusted registered font bytes plus the built-in font families
-     */
-    public DocumentRenderer(FontRegistry fonts) {
-        this(fonts, HyphenationPatterns.empty());
-    }
-
-    /**
      * Binds native rendering to owned explicit font and hyphenation resources.
      *
      * @param fonts immutable registered fonts
@@ -52,18 +43,6 @@ public final class DocumentRenderer {
     public DocumentRenderer(FontRegistry fonts, HyphenationPatterns patterns) {
         this.fonts = fonts;
         this.patterns = patterns;
-    }
-
-    /**
-     * Renders an already validated model and applies its optional watermark only after layout
-     * succeeds.
-     *
-     * @param document immutable input accepted by the shared input validator
-     * @return complete PDF bytes after all requested stages succeed
-     * @throws PdfGenerationException if composition, layout checks, recovery or watermarking fails
-     */
-    public byte[] render(LetterDocument document) {
-        return render(document, RenderOptions.defaults()).pdfBytes();
     }
 
     /**

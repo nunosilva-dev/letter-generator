@@ -36,7 +36,7 @@ export async function copyPublicJavadocs(source, destination) {
     recursive: true,
     filter: async (file) => (await stat(file)).isDirectory()
       || /\.(html|js|css|png|gif|svg|woff2?|ttf|txt)$/.test(file)
-      || ['element-list', 'package-list'].includes(path.basename(file)),
+      || ['element-list', 'package-list', 'LICENSE', 'NOTICE'].includes(path.basename(file)),
   });
   // Java 17's doclet can link a two-part package group to an absent anchor.
   // Correct only those generated TOC links for which a real section exists.
