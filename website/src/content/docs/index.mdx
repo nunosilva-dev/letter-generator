@@ -1,0 +1,40 @@
+---
+title: Letters, clearly composed.
+description: Create polished PDF letters with four approachable APIs and one consistent document model.
+template: splash
+hero:
+  tagline: From a first paragraph to reusable company stationery. Choose your API, see the result, and build with confidence.
+  actions:
+    - text: Generate your first letter
+      link: /start/quickstart/
+      icon: right-arrow
+    - text: Explore the example gallery
+      link: /examples/gallery/
+      variant: secondary
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import ApiExamples from '../../components/ApiExamples.astro';
+import { quickstarts } from '../../data/examples.mjs';
+
+<CardGrid>
+  <Card title="Four ways to author" icon="document">Use fluent Java, immutable Java values, strict JSON or letter HTML. Every route reaches the same PDF engine.</Card>
+  <Card title="Built for real letters" icon="pencil">Control stationery, pagination, rich tables, visible signatures, localization and reusable company styling.</Card>
+  <Card title="See what you will get" icon="open-book">Browse generated PDFs and previews. Download complete programs, template inputs and assets.</Card>
+  <Card title="Know the boundaries" icon="approve-check">Find exact attributes, units, inheritance rules and rendering limits before integration.</Card>
+</CardGrid>
+
+## A first letter, in your preferred API
+
+Your API choice is remembered across documentation pages. Java examples below are complete programs; JSON and HTML show their complete input documents.
+
+<ApiExamples {...quickstarts} />
+
+## Continue by task
+
+<CardGrid>
+  <LinkCard title="Choose the right API" description="Compare authoring styles, template binding and model control." href="/start/choose-api/" />
+  <LinkCard title="Recreate the energy letter" description="Follow one realistic, fictional letter through all four APIs." href="/examples/energy-letter/" />
+  <LinkCard title="Look up a tag or property" description="Find supported markup, inline CSS and JSON fields." href="/reference/html-tags/" />
+  <LinkCard title="Reuse a company theme" description="Style typography, stationery, tables and signatures consistently." href="/guides/themes-components/" />
+</CardGrid>

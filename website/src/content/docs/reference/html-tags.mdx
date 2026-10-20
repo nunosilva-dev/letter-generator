@@ -1,0 +1,26 @@
+---
+title: HTML tag reference
+description: Every supported letter tag, its placement, attributes, defaults and a usage example.
+sidebar:
+  order: 1
+---
+
+import TagReference from '../../../components/TagReference.astro';
+
+This is the supported **letter HTML** vocabulary. Every tag below has a placement rule and example. The reference build compares this catalogue against the implementation's region/block/inline/layout vocabulary, preventing unnoticed additions/removals.
+
+## Parsing rules
+
+Use a single `letter` root with a required `main` body. Do not add browser `html`, `head` or `body` wrappers. Unsupported tags, attributes, styles and HTML recovery fail with a source location. Comments and structural indentation are allowed; explicit text belongs in appropriate text blocks.
+
+Use paired closing tags for custom empty elements: `page-break`, `component`, `page-number` and `page-count`. Standard `img`, `br` and `param` are void tags. Escape literal markup as `&lt;`/`&amp;`; template values are literal text and cannot create markup.
+
+## Common attributes and exceptions
+
+`style` selects supported [inline CSS](/reference/css/). `style-name` names a document-local theme style. They are allowed only where the tag supports styling: `logo` has no wrapper appearance; `watermark` forbids named styles and has special appearance rules; `if`, `else`, `param` and `page-break` have stricter attribute restrictions.
+
+`data-if` selects an element using a Boolean map path. `data-each` repeats supported blocks/rows using a List path, with required `data-as` alias. These attributes are processed only in template mode, before normal tag validation. They are not arbitrary expressions; see the [directive reference](/reference/template-directives/).
+
+## Tag index
+
+<TagReference />

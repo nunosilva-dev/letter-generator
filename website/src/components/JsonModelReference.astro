@@ -1,0 +1,13 @@
+---
+import { root } from '../../scripts/project.mjs';
+import { readModelReference } from '../../scripts/lib/model-reference.mjs';
+import path from 'node:path';
+const reference = await readModelReference(path.join(root, 'src/main/java/com/nsdev/lettergenerator'));
+const id = (name: string) => name.toLowerCase();
+---
+<nav aria-label="JSON object index" class="model-index">{reference.records.map((record) => <a href={`#${id(record.name)}`}>{record.name}</a>)}</nav>
+{reference.polymorphic.map((type) => <section><h2 id={id(type.name)}>{type.name} discriminator</h2><p>Select a variant with the <code>{type.property}</code> property.</p><table><thead><tr><th>Value</th><th>Object fields</th></tr></thead><tbody>{type.variants.map((variant) => <tr><td><code>{variant.value}</code></td><td><a href={`#${id(variant.name)}`}>{variant.name}</a></td></tr>)}</tbody></table></section>)}
+{reference.records.map((record) => <section><h2 id={id(record.name)}>{record.name}</h2><p>{record.description}</p><p><a href={`/api/${record.packageName.replaceAll('.', '/')}/${record.name}.html`}>Java contract and constructors ↗</a></p><table><thead><tr><th>JSON field</th><th>Value type</th><th>Meaning and constraints</th></tr></thead><tbody>{record.fields.map((field) => <tr><td><code>{field.name}</code></td><td><code>{field.type}</code></td><td>{field.description}</td></tr>)}</tbody></table>{record.fields.length === 0 && <p>This variant has no additional fields.</p>}</section>)}
+<h2 id="enum-values">Enum values</h2><p>JSON enum values are case-sensitive strings. Null selects inheritance/defaults only where the owning field allows it.</p>
+{reference.enums.map((type) => <section><h3 id={id(type.name)}>{type.name}</h3><p>{type.values.map((value, index) => <>{index > 0 && ', '}<code>{value}</code></>)}</p><a href={type.javadoc || `/api/${type.packageName.replaceAll('.', '/')}/${type.name}.html`}>Enum contract ↗</a></section>)}
+<style>.model-index{display:flex;flex-wrap:wrap;gap:.5rem 1rem;font-size:.85rem;margin-block:1.5rem}section{scroll-margin-top:6rem}</style>

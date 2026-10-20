@@ -3,3 +3,9 @@
 *.log
 .idea/
 *.iml
+/website/node_modules/
+/website/.astro/
+/website/dist/
+/website/public/api/
+/website/public/examples/
+/website/public/downloads/

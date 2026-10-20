@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "sections": [{
+    "name": "body",
+    "blocks": [{
+      "type": "paragraph",
+      "runs": [{ "text": "Hello from Letter Generator" }]
+    }]
+  }]
+}

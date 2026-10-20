@@ -1,0 +1,22 @@
+---
+title: JSON model fields and enums
+description: Every reachable document record, JSON field, block/watermark discriminator and enum value.
+sidebar:
+  order: 3
+---
+
+import JsonModelReference from '../../../components/JsonModelReference.astro';
+
+Start with the [JSON authoring guide](/apis/json/) for complete input and rendering examples. This page is generated from the public record components, their Javadocs, enum declarations and Jackson subtype annotations reachable from `LetterDocument`. It does not include implementation classes or unrelated fluent-only helper values.
+
+## Reading the types
+
+A record type is a JSON object, `List<T>` is an array, and `Map<String,T>` is an object keyed by name. `Map<StyleRole,Style>` uses the exact role enum names as keys. `String` is text, Boolean/boolean is true/false, and numeric types require actual JSON numbers. `byte[]` is a Base64 string. Enum values are case-sensitive strings.
+
+Use `schemaVersion: 1`. Schema and Maven versions are distinct. Unknown fields, duplicate keys, trailing tokens, numeric enum ordinals, null primitive values and incompatible scalar coercions are rejected. Null boxed/style values mean inheritance/defaults only where their owning contract permits them; required values are still validated during generation.
+
+Some fields such as `semanticStyle`, `defaultAppearance`, `defaultStyle` and `baseStyle` preserve lower-priority authoring layers. Ordinary callers usually omit them and set `style`/`appearance`/theme values directly. No constructor/JSON parse result is a guarantee that the document is renderable.
+
+## Object and discriminator reference
+
+<JsonModelReference />

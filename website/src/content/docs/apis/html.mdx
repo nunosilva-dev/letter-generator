@@ -1,0 +1,127 @@
+---
+title: "HTML templates and placeholders"
+description: "Letter Generator usage: html templates and placeholders."
+---
+
+import { Code } from '@astrojs/starlight/components';
+import { quickstarts, runners } from '../../../data/examples.mjs';
+
+## Complete first integration
+
+The following input and Java runner are the exact resources used by the documentation integration test. Save the input under `src/main/resources/letters/hello.html`, or [download the complete runnable Maven project](/downloads/letter-generator-examples.zip).
+
+<Code code={quickstarts.html} lang="html" title="Complete input document" />
+<Code code={runners.html} lang="java" title="Complete Java runner" />
+
+Use `Letter.template(source)` for trusted author-authored markup plus `${key}` bindings, or `Letter.fromHtml(resolvedSource)` for already-resolved markup. Java binding convenience is configured on `HtmlLetterBuilder`; final rendering still uses `LetterPdfGenerator`.
+
+The [complete tag reference](/reference/html-tags/), [CSS reference](/reference/css/) and [directive reference](/reference/template-directives/) specify the current vocabulary, including newer containers and typed data features. Unknown browser tags, attributes, CSS declarations and HTML error recovery fail with a path.
+
+
+
+### Full working shape
+
+```html
+<letter page="A4" margins-mm="20" footer-height-mm="18"
+        style="font-family:Helvetica;font-size:11pt;line-height:1.2">
+  <header align="right" width-mm="80" height-mm="30">
+    <p>${customerName}<br>${addressLine1}<br>${postalAddress}</p>
+  </header>
+  <main>
+    <h2>Confirmation</h2>
+    <p>Dear <strong>${customerName}</strong>,</p>
+    <p>Your price is <span style="color:#008000">${price}</span>.</p>
+    <page-break></page-break>
+    <p>Further information is available on our website.</p>
+  </main>
+  <signature><p style="font-style:italic">Jane Smith</p></signature>
+  <footer style="font-size:8pt;text-align:center">
+    <img src="asset:footer-banner" width="100%" height="6mm">
+    <p style="margin-top:1mm;margin-bottom:0">${companyName}</p>
+  </footer>
+</letter>
+```
+
+```java
+import java.util.Map;
+
+var letter = Letter.template(templateText)
+    .values(Map.of(
+        "customerName", "Ana & Filhos <Lda>",
+        "addressLine1", "Morada Fictícia, 00",
+        "postalAddress", "0000-000 Localidade",
+        "price", "0,1632",
+        "companyName", "Example Company"))
+    .asset("footer-banner", footerBytes)
+    .build();
+byte[] pdf = new LetterPdfGenerator().generate(letter);
+```
+
+Exactly one `letter` root and one `main` are required. Optional regions include `header`, `footer`, `signature`, `logo`, `watermark` and the semantic letter parts described in [semantic parts](/guides/semantic-parts/). Region order in the source does not change their role. Body block order is preserved. A logo region contains one `img`; watermark syntax is described below.
+
+### Substitution rules
+
+The integrated API uses Apache Commons Text `StringSubstitutor` with **only your map** and `${keyToReplace}` syntax. It parses the template first, then replaces text/attribute values. A replacement like `Ana <strong> & ${other}` remains literal data, including the `${other}` substring. No recursive value substitution or markup injection occurs. Tag and attribute names cannot be generated through placeholders.
+
+Missing keys fail with `InvalidLetterException`; no silent empty replacement is applied. Default-value expressions such as `${name:-fallback}`, nested variable names, environment/system-property lookups and expression evaluation are not supported. Supply supported scalars, immutable temporal values and nested maps/lists; use `param` with explicit locale settings for dates, money and numbers. Map values and asset bytes are snapshotted when supplied. [Section 28](/guides/template-data/) specifies typed data, scope and directive rules.
+
+For CSS placeholders use a property value, for example `style="font-size:${size}"` with `size="12pt"`. A replacement cannot introduce a semicolon and another declaration. Numeric layout attributes remain numeric after replacement.
+
+### Already-substituted markup
+
+```java
+var letter = Letter.fromHtml(resolvedMarkup).asset("logo", logoBytes).build();
+```
+
+This performs no replacement pass, and `.values(...)` on this builder throws an argument error. If your application uses StringSubstitutor before parsing, it is responsible for escaping replacement values in their HTML context. Prefer the integrated `.template(...).values(...)` path for ordinary scalar data.
+
+Templates support finite named-boolean conditions and list repetition through the integrated `Letter.template(...)` path; see [template data](/guides/template-data/). Pass bound values through `.values(...)` rather than concatenating unescaped data into markup.
+
+### Supported markup
+
+| Tags | Content/behavior |
+| --- | --- |
+| `p`, text-only `div`, `h1`–`h6` | Styled text blocks; headings keep with the following block |
+| Grouping `div` | Shared inherited text styles for its child blocks |
+| `strong`, `b`, `em`, `i`, `u`, `span` | Inline text styling |
+| `br` | Line change |
+| `a href="..."` | http/https/mailto link; optional `title` attribute |
+| `ul`, `ol`, `li` | Inline-formatted items with supported nested lists |
+| `table`, `thead`, `tbody`, `tr`, `th`, `td` | Merged tables with text or block content in cells |
+| `group` | Styled group with a soft keep; configurable with `keep-together` |
+| `component ref="name"` | Include registered reusable blocks; use a paired closing tag |
+| `page-number`, `page-count` | Current and total pages; empty elements with paired closing tags |
+| `img` | Standalone named asset; optional `alt`, `width`, `height` |
+| `page-break` | Body-only explicit page transition; paired closing tag |
+| `param` | Empty void tag for formatted typed values; no closing tag |
+| `if`, `else` | Named-boolean branches outside tables; template mode only |
+| `sender`, `date`, `recipient`, `reference`, `subject`, `salutation`, `closing` | Top-level semantic letter regions |
+
+Supported CSS is inline through `style`: `font-family`, `font-size`, `color`, `font-weight`, `font-style`, `text-decoration`, `text-align`, unitless `line-height`, `margin-top`, `margin-bottom`, table `background-color`, image `width`/`height`, page `keep-together`/`keep-with-next`/`widows`/`orphans`, and table/cell `padding`/`border`/`vertical-align`.
+
+Font sizes accept pt/mm/px. Margins accept mm/pt/px and unitless zero. Colors accept `#RGB`, `#RRGGBB`, black, white, gray/grey, red, green, blue, navy and teal. Font weight accepts normal/bold/400/700; font style normal/italic; decoration none/underline. A font family names one available family, not a browser-style fallback list.
+
+Root styles provide text/paragraph defaults. Styled containers preserve inherited scopes; HTML compilation may therefore produce transparent AUTO groups in the shared model. Region/group text properties inherit; put margins on individual paragraphs/text blocks. Background colors are supported on table elements, not ordinary text spans/paragraphs. Unsupported tags, attributes, styles and HTML error recovery fail with a location. Use letter markup without `html`, `head` or `body` wrappers, scripts, classes, stylesheets or browser positioning rules. This is a letter document format with an HTML vocabulary, not a browser renderer.
+
+### Root and region attributes
+
+| Element | Attribute | Meaning |
+| --- | --- | --- |
+| `letter` | `page` | A4 or LETTER, case-insensitive |
+| `letter` | `margins-mm` | Uniform margins, default 20 |
+| `letter` | `header-height-mm` | Default header content height, 25 |
+| `letter` | `footer-height-mm` | Footer content height, 15 |
+| `letter` | `page-width-mm`, `page-height-mm` | Paired positive custom paper dimensions |
+| `letter` | `orientation` | PORTRAIT or LANDSCAPE |
+| `letter` | `language-tag`, `date-pattern`, `date-style`, `currency`, `zone-id` | Literal explicit locale configuration; see [localized formatting](/guides/localization/) |
+| `signature` | `placement` | flow (default) or bottom-last, case-insensitive |
+| `signature` | `height-mm` | Signature content height, default 20; reserved on the last page for bottom-last |
+| `header`, `footer` | `pages` | all (fallback), first or following; default all |
+| Content elements | `style-name` | Reference a named theme style below local CSS |
+| `header` | `align` | left, center or right; box and default content alignment |
+| `header` | `width-mm`, `height-mm` | Optional preset box dimensions |
+| `header` | `x-mm`, `y-mm`, `width-mm`, `height-mm` together | Exact box relative to inner-page origin |
+
+Root region tags may appear in any order; their child content keeps its source order.
+
+The full template format currently offers uniform root margins. Use the fluent/advanced Java model when independent margin values are required.

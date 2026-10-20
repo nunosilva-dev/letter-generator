@@ -1,0 +1,71 @@
+---
+title: Energy letter through all four APIs
+description: Recreate a realistic fictional letter with stationery, rich text, a price table, images and a final-page signature.
+sidebar:
+  order: 1
+---
+
+import { Code } from '@astrojs/starlight/components';
+import EnergyComparison from '../../../components/EnergyComparison.astro';
+import { energySources } from '../../../data/examples.mjs';
+
+This example recreates a business letter with a logo, recipient panel, Portuguese content, a price comparison table, a bottom-of-last-page signature and an image footer. **All names, addresses, identifiers, websites, contact details and artwork are fictional.**
+
+[Download the complete runnable Maven project](/downloads/letter-generator-examples.zip). It includes all four inputs, the Java factories and shared example content, the rendering entry point, synthetic images, placeholder data and licensed fonts. No library implementation source or test framework is required.
+
+## Compare input and output
+
+Each PDF below was generated and checked by its own integration-test route. The Java source shown is the authoring factory, with shared example content/assets provided in the ZIP. `EnergyExamples` in that project configures fonts and runs all four routes. The HTML example intentionally uses semantic heading tags and need not produce byte-identical PDF data to the typed route.
+
+<EnergyComparison />
+
+## 1. Set the physical page and typography
+
+The letter uses A4 paper, 10 mm margins and an explicitly registered `ReferenceSans` font alias. Ordinary copy is 9 pt with controlled line height/spacing, fitting the complete example onto one page. DejaVu regular/bold files in the download supply its character coverage; the italic display signature uses standard Times.
+
+The example's font registration is explicit. Applications should package fonts appropriate to their required languages and licensing. The no-argument generator does not automatically discover these example fonts.
+
+## 2. Reserve stationery space
+
+A separate logo sits at the top. The recipient header uses an exact 110 × 20 mm origin and an 80 × 35 mm box relative to the inner-page origin. Content alignment is right-aligned independently of that physical rectangle. The builder reserves enough body space for the final geometry.
+
+The footer combines a named image with fictional legal text. Increase reserved heights when adding content; changing font size or spacing can change what fits. See [header placement](/guides/headers/) and [footer content](/guides/footers/).
+
+## 3. Author the body and price table
+
+The Java routes explicitly assemble paragraphs and headings; the fluent route groups text naturally with body calls. JSON describes the immutable document graph. HTML supplies the same content using supported tags and literal data bindings.
+
+The table has three equally weighted columns, a styled repeating header and two price rows. Header text color and background are configured separately from body typography. For more complex documents, [rich table cells and spans](/guides/tables-lists/) support blocks, padding, borders and row keeps.
+
+## 4. Bind the HTML values
+
+These are the complete literal values used by the HTML route:
+
+<Code code={energySources.values} lang="json" title="energy-values.json" />
+
+The standalone runner supplies them as a Java map and registers `company-logo` and `footer-banner` byte assets. `${key}` replacement is literal and map-only; the library does not infer a database or application persistence model. Use typed values with `param` when formatting should depend on the chosen country.
+
+- [HTML template](/downloads/energy/energy-price-update.html)
+- [JSON document, including embedded assets](/downloads/energy/energy-letter.json)
+- [Value data](/downloads/energy/energy-values.json)
+- [Synthetic logo](/downloads/energy/energy-logo.png)
+- [Synthetic footer](/downloads/energy/energy-footer.png)
+
+## 5. Keep the signature at the end
+
+The signature selects `BOTTOM_LAST` / `placement="bottom-last"` with a 25 mm reservation. It occupies the final generated letter page above the footer. If body content expands, the configured policy still places the signature on the accepted final letter page; impossible geometry can fail instead of silently shrinking content.
+
+This is a visual text signature, not cryptographic PDF signing. If an appendix is attached, the signature remains on the last **letter** page rather than the appendix.
+
+## 6. Run it independently
+
+In the extracted example project, after making the library artifact available:
+
+```sh
+mvn package dependency:copy-dependencies
+java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' com.nsdev.lettergenerator.examples.EnergyExamples
+```
+
+Windows uses `;` between classpath entries. The four files appear under `output/` as `energy-typed.pdf`, `energy-fluent.pdf`, `energy-json.pdf` and `energy-html.pdf`.
+
+This is also a useful starting point for changing a feature one at a time: try [first/continuation stationery](/guides/company-stationery/), a [shared theme](/guides/themes-components/), [localized dates](/guides/localization/) or [render diagnostics](/guides/diagnostics/).

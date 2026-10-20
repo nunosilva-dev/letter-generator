@@ -1,0 +1,674 @@
+{
+  "tags": [
+    {
+      "name": "letter",
+      "context": "Exactly one root",
+      "attributes": {
+        "page": "a4 or letter; case-insensitive",
+        "orientation": "portrait or landscape",
+        "page-width-mm": "Positive custom paper width; requires page-height-mm",
+        "page-height-mm": "Positive custom paper height; requires page-width-mm",
+        "margins-mm": "Finite uniform physical page margin, in mm",
+        "header-height-mm": "Reserved header height in mm",
+        "footer-height-mm": "Reserved footer height in mm",
+        "language-tag": "BCP 47 language/country identifier",
+        "date-pattern": "Java DateTimeFormatter pattern",
+        "date-style": "FULL, LONG, MEDIUM or SHORT",
+        "currency": "ISO 4217 currency code",
+        "zone-id": "Java ZoneId name; affects temporal formatting"
+      },
+      "defaults": "A4 portrait; 20 mm margins; 25 mm header; 15 mm footer; en-GB, LONG dates, UTC; no selected currency.",
+      "description": "Use letter markup without html/head/body wrappers. Root typography is inherited by content; use Java for independent per-side margins. Custom paper dimensions are a pair. Positive-size paper must accommodate margins/zones.",
+      "example": "<letter page=\"a4\" margins-mm=\"20\"><main><p>Hello</p></main></letter>"
+    },
+    {
+      "name": "main",
+      "context": "Required direct child of letter",
+      "attributes": {},
+      "defaults": "One required region; body blocks keep source order.",
+      "description": "Only the body flow permits explicit page-break blocks. A selected template must contain renderable body content.",
+      "example": "<main><p>Body text</p></main>"
+    },
+    {
+      "name": "header",
+      "context": "Direct child of letter; unique per page selector",
+      "attributes": {
+        "pages": "all, first or following",
+        "align": "left, center or right; controls box placement and initial text alignment",
+        "width-mm": "Positive header width in mm",
+        "height-mm": "Positive header height in mm",
+        "x-mm": "Exact x relative to inner page; requires all four bounds",
+        "y-mm": "Exact y relative to inner page; requires all four bounds"
+      },
+      "defaults": "All pages; automatic left-aligned placement; height derives from header-height-mm.",
+      "description": "Exact placement requires x-mm, y-mm, width-mm and height-mm together. Text alignment can be overridden on child blocks. Put paragraph margins on child p/div blocks. FIRST/FOLLOWING variants override ALL on matching pages.",
+      "example": "<header pages=\"first\" align=\"right\"><p>Company address</p></header>"
+    },
+    {
+      "name": "footer",
+      "context": "Direct child of letter; unique per page selector",
+      "attributes": {
+        "pages": "all, first or following"
+      },
+      "defaults": "All pages; fitting height uses footer-height-mm.",
+      "description": "Supported rich blocks and images; no page breaks. Reserve sufficient height on letter. Put text spacing on child blocks.",
+      "example": "<footer pages=\"all\"><p>Page <page-number></page-number> of <page-count></page-count></p></footer>"
+    },
+    {
+      "name": "logo",
+      "context": "Direct child of letter",
+      "attributes": {},
+      "defaults": "Image fitting box 45 × 20 mm.",
+      "description": "Exactly one img child. Apply dimensions/styles to img, not to the logo wrapper. Named image assets only.",
+      "example": "<logo><img src=\"asset:logo\" width=\"40mm\" alt=\"Example Company\"></logo>"
+    },
+    {
+      "name": "signature",
+      "context": "Direct child of letter",
+      "attributes": {
+        "placement": "flow or bottom-last (bottom_last also accepted)",
+        "height-mm": "Finite positive signature reservation, in mm"
+      },
+      "defaults": "flow; 20 mm.",
+      "description": "Styled text/images/blocks; no page breaks. bottom-last places the signature on the final generated letter page above the footer. This is a visible signature, not cryptographic signing.",
+      "example": "<signature placement=\"bottom-last\" height-mm=\"20\"><p>Customer Services</p></signature>"
+    },
+    {
+      "name": "watermark",
+      "context": "Direct child of letter",
+      "attributes": {
+        "opacity": "Finite number from 0 through 1",
+        "rotation": "Finite rotation in degrees, about page center",
+        "pages": "all, first or following"
+      },
+      "defaults": "All pages; opacity 0.12; text 45° / image 0°; image fitting box 80 × 40 mm.",
+      "description": "Either plain text or exactly one img child. Text uses independent watermark font/color/size defaults and permits only regular undecorated text. No named style. Image styles belong on img. Standard PDF profile only; does not reserve body space.",
+      "example": "<watermark opacity=\"0.12\" rotation=\"45\">DEMONSTRATION</watermark>"
+    },
+    {
+      "name": "sender",
+      "context": "Direct child of letter",
+      "attributes": {},
+      "defaults": "Optional semantic regions; role defaults/theme apply.",
+      "description": "Rich block content. Fluent/HTML semantic parts assemble in conventional letter order rather than arbitrary root tag order. Each role is unique.",
+      "example": "<sender><p>Example content</p></sender>"
+    },
+    {
+      "name": "recipient",
+      "context": "Direct child of letter",
+      "attributes": {},
+      "defaults": "Optional semantic regions; role defaults/theme apply.",
+      "description": "Rich block content. Fluent/HTML semantic parts assemble in conventional letter order rather than arbitrary root tag order. Each role is unique.",
+      "example": "<recipient><p>Example content</p></recipient>"
+    },
+    {
+      "name": "subject",
+      "context": "Direct child of letter",
+      "attributes": {},
+      "defaults": "Optional semantic regions; role defaults/theme apply.",
+      "description": "Rich block content. Fluent/HTML semantic parts assemble in conventional letter order rather than arbitrary root tag order. Each role is unique.",
+      "example": "<subject><p>Example content</p></subject>"
+    },
+    {
+      "name": "salutation",
+      "context": "Direct child of letter",
+      "attributes": {},
+      "defaults": "Optional semantic regions; role defaults/theme apply.",
+      "description": "Rich block content. Fluent/HTML semantic parts assemble in conventional letter order rather than arbitrary root tag order. Each role is unique.",
+      "example": "<salutation><p>Example content</p></salutation>"
+    },
+    {
+      "name": "closing",
+      "context": "Direct child of letter",
+      "attributes": {},
+      "defaults": "Optional semantic regions; role defaults/theme apply.",
+      "description": "Rich block content. Fluent/HTML semantic parts assemble in conventional letter order rather than arbitrary root tag order. Each role is unique.",
+      "example": "<closing><p>Example content</p></closing>"
+    },
+    {
+      "name": "date",
+      "context": "Direct child of letter",
+      "attributes": {
+        "value": "ISO LocalDate, such as 2026-10-20"
+      },
+      "defaults": "Final document locale/date pattern formats a value attribute.",
+      "description": "Choose value with no child content, or authored rich date content without value. Supports semantic DATE theme styling.",
+      "example": "<date value=\"2026-10-20\"></date>"
+    },
+    {
+      "name": "reference",
+      "context": "Direct child of letter",
+      "attributes": {
+        "label": "Required nonblank reference label"
+      },
+      "defaults": "Semantic REFERENCE role.",
+      "description": "Authored rich content follows the configured label.",
+      "example": "<reference label=\"Account\"><p>DEMO-000001</p></reference>"
+    },
+    {
+      "name": "p",
+      "context": "Inside a region, rich cell, group or supported container",
+      "attributes": {},
+      "defaults": "Inherited body typography; ordinary paragraph flow.",
+      "description": "Inline text and formatting. Source whitespace is normalized by markup parsing; use br for explicit lines. Images are separate blocks.",
+      "example": "<p>Hello <strong>${name}</strong>.<br>Second line.</p>"
+    },
+    {
+      "name": "h1",
+      "context": "Block content inside supported regions/containers",
+      "attributes": {},
+      "defaults": "Bold; semantic sizes h1=18, h2=16, h3=14, h4=12, h5=11, h6=10 pt, below named/explicit overrides; keep with next.",
+      "description": "Inline formatted heading text. Current tagged-PDF model emits H1 for every heading level; HTML level does not establish a complete PDF heading hierarchy.",
+      "example": "<h1>Account update</h1>"
+    },
+    {
+      "name": "h2",
+      "context": "Block content inside supported regions/containers",
+      "attributes": {},
+      "defaults": "Bold; semantic sizes h1=18, h2=16, h3=14, h4=12, h5=11, h6=10 pt, below named/explicit overrides; keep with next.",
+      "description": "Inline formatted heading text. Current tagged-PDF model emits H1 for every heading level; HTML level does not establish a complete PDF heading hierarchy.",
+      "example": "<h2>Account update</h2>"
+    },
+    {
+      "name": "h3",
+      "context": "Block content inside supported regions/containers",
+      "attributes": {},
+      "defaults": "Bold; semantic sizes h1=18, h2=16, h3=14, h4=12, h5=11, h6=10 pt, below named/explicit overrides; keep with next.",
+      "description": "Inline formatted heading text. Current tagged-PDF model emits H1 for every heading level; HTML level does not establish a complete PDF heading hierarchy.",
+      "example": "<h3>Account update</h3>"
+    },
+    {
+      "name": "h4",
+      "context": "Block content inside supported regions/containers",
+      "attributes": {},
+      "defaults": "Bold; semantic sizes h1=18, h2=16, h3=14, h4=12, h5=11, h6=10 pt, below named/explicit overrides; keep with next.",
+      "description": "Inline formatted heading text. Current tagged-PDF model emits H1 for every heading level; HTML level does not establish a complete PDF heading hierarchy.",
+      "example": "<h4>Account update</h4>"
+    },
+    {
+      "name": "h5",
+      "context": "Block content inside supported regions/containers",
+      "attributes": {},
+      "defaults": "Bold; semantic sizes h1=18, h2=16, h3=14, h4=12, h5=11, h6=10 pt, below named/explicit overrides; keep with next.",
+      "description": "Inline formatted heading text. Current tagged-PDF model emits H1 for every heading level; HTML level does not establish a complete PDF heading hierarchy.",
+      "example": "<h5>Account update</h5>"
+    },
+    {
+      "name": "h6",
+      "context": "Block content inside supported regions/containers",
+      "attributes": {},
+      "defaults": "Bold; semantic sizes h1=18, h2=16, h3=14, h4=12, h5=11, h6=10 pt, below named/explicit overrides; keep with next.",
+      "description": "Inline formatted heading text. Current tagged-PDF model emits H1 for every heading level; HTML level does not establish a complete PDF heading hierarchy.",
+      "example": "<h6>Account update</h6>"
+    },
+    {
+      "name": "div",
+      "context": "Block content inside regions/containers",
+      "attributes": {},
+      "defaults": "Text-only div becomes a text block; block children make an inherited style scope.",
+      "description": "Style scopes preserve named-style inheritance. Mixing bare text with child block elements is rejected; wrap prose in p when grouping blocks.",
+      "example": "<div style=\"color:#12665B\"><p>First paragraph</p><p>Second paragraph</p></div>"
+    },
+    {
+      "name": "group",
+      "context": "Block content inside regions/containers",
+      "attributes": {},
+      "defaults": "Soft keep-together by default; style can choose auto/prefer/always.",
+      "description": "Groups supported blocks. An impossible strict keep can fail. Page breaks are only allowed where the enclosing body context permits them.",
+      "example": "<group style=\"keep-together:prefer\"><h3>Heading</h3><p>Related text.</p></group>"
+    },
+    {
+      "name": "span",
+      "context": "Inline text within paragraphs, headings and list/cell text",
+      "attributes": {},
+      "defaults": "span inherits; strong/b set bold; em/i set italic; u sets underline.",
+      "description": "Use style/style-name for supported typography. Explicit false/normal values can override inherited emphasis. Styles must name registered or standard font faces.",
+      "example": "<p>Normal <span>emphasized text</span>.</p>"
+    },
+    {
+      "name": "strong",
+      "context": "Inline text within paragraphs, headings and list/cell text",
+      "attributes": {},
+      "defaults": "span inherits; strong/b set bold; em/i set italic; u sets underline.",
+      "description": "Use style/style-name for supported typography. Explicit false/normal values can override inherited emphasis. Styles must name registered or standard font faces.",
+      "example": "<p>Normal <strong>emphasized text</strong>.</p>"
+    },
+    {
+      "name": "b",
+      "context": "Inline text within paragraphs, headings and list/cell text",
+      "attributes": {},
+      "defaults": "span inherits; strong/b set bold; em/i set italic; u sets underline.",
+      "description": "Use style/style-name for supported typography. Explicit false/normal values can override inherited emphasis. Styles must name registered or standard font faces.",
+      "example": "<p>Normal <b>emphasized text</b>.</p>"
+    },
+    {
+      "name": "em",
+      "context": "Inline text within paragraphs, headings and list/cell text",
+      "attributes": {},
+      "defaults": "span inherits; strong/b set bold; em/i set italic; u sets underline.",
+      "description": "Use style/style-name for supported typography. Explicit false/normal values can override inherited emphasis. Styles must name registered or standard font faces.",
+      "example": "<p>Normal <em>emphasized text</em>.</p>"
+    },
+    {
+      "name": "i",
+      "context": "Inline text within paragraphs, headings and list/cell text",
+      "attributes": {},
+      "defaults": "span inherits; strong/b set bold; em/i set italic; u sets underline.",
+      "description": "Use style/style-name for supported typography. Explicit false/normal values can override inherited emphasis. Styles must name registered or standard font faces.",
+      "example": "<p>Normal <i>emphasized text</i>.</p>"
+    },
+    {
+      "name": "u",
+      "context": "Inline text within paragraphs, headings and list/cell text",
+      "attributes": {},
+      "defaults": "span inherits; strong/b set bold; em/i set italic; u sets underline.",
+      "description": "Use style/style-name for supported typography. Explicit false/normal values can override inherited emphasis. Styles must name registered or standard font faces.",
+      "example": "<p>Normal <u>emphasized text</u>.</p>"
+    },
+    {
+      "name": "a",
+      "context": "Inline text",
+      "attributes": {
+        "href": "Required HTTP, HTTPS or mailto destination",
+        "title": "Optional descriptive title"
+      },
+      "defaults": "Inherited appearance.",
+      "description": "Links remain native PDF links. Unsupported URI schemes are rejected. Link text may use supported inline formatting.",
+      "example": "<p><a href=\"https://example.com/help\" title=\"Help\">Contact support</a></p>"
+    },
+    {
+      "name": "br",
+      "context": "Inline text",
+      "attributes": {},
+      "defaults": "Explicit line change within the current text block.",
+      "description": "Void HTML element; no children. Use another p for a new paragraph.",
+      "example": "<p>First line<br>Second line</p>"
+    },
+    {
+      "name": "page-number",
+      "context": "Inline text, including header/footer",
+      "attributes": {},
+      "defaults": "Dynamic current/total generated-letter page number.",
+      "description": "Empty elements with paired closing tags. Counts exclude appended attachment pages. They do not accept text children.",
+      "example": "<p>Page <page-number></page-number> of <page-count></page-count></p>"
+    },
+    {
+      "name": "page-count",
+      "context": "Inline text, including header/footer",
+      "attributes": {},
+      "defaults": "Dynamic current/total generated-letter page number.",
+      "description": "Empty elements with paired closing tags. Counts exclude appended attachment pages. They do not accept text children.",
+      "example": "<p>Page <page-number></page-number> of <page-count></page-count></p>"
+    },
+    {
+      "name": "page-break",
+      "context": "Body flow only",
+      "attributes": {},
+      "defaults": "Starts a new body page.",
+      "description": "Empty, paired closing tag; no attributes including style/style-name. Not allowed inside tables, fixed regions, signatures, canvases or columns.",
+      "example": "<main><p>First page</p><page-break></page-break><p>Second page</p></main>"
+    },
+    {
+      "name": "img",
+      "context": "Standalone block, supported region/rich cell, logo or image watermark",
+      "attributes": {
+        "src": "Required asset:name reference to supplied bytes",
+        "width": "Positive mm/pt/px/% length; unitless means px at 96 dpi",
+        "height": "Positive mm/pt/px/% length; unitless means px at 96 dpi",
+        "alt": "Image description used in tagged output"
+      },
+      "defaults": "Body fitting box up to 60 × 40 mm; region-specific defaults elsewhere; aspect ratio preserved.",
+      "description": "PNG/JPEG/restricted static SVG. CSS dimensions override attributes. Percentages use available region dimensions. Width alone permits natural fitted height. No URL/file fetch, inline text images or image background-color.",
+      "example": "<img src=\"asset:chart\" width=\"70mm\" alt=\"Comparison of previous and new rates\">"
+    },
+    {
+      "name": "ul",
+      "context": "Supported block content",
+      "attributes": {},
+      "defaults": "Unordered bullets / ordered numbering; each nested list has independent numbering/indentation.",
+      "description": "Direct li children with inline text and optional nested lists. Arbitrary paragraph/image/table blocks inside li are unsupported.",
+      "example": "<ul><li>First item</li><li>Second item<ul><li>Detail</li></ul></li></ul>"
+    },
+    {
+      "name": "ol",
+      "context": "Supported block content",
+      "attributes": {},
+      "defaults": "Unordered bullets / ordered numbering; each nested list has independent numbering/indentation.",
+      "description": "Direct li children with inline text and optional nested lists. Arbitrary paragraph/image/table blocks inside li are unsupported.",
+      "example": "<ol><li>First item</li><li>Second item<ul><li>Detail</li></ul></li></ol>"
+    },
+    {
+      "name": "li",
+      "context": "Direct child of ul or ol",
+      "attributes": {},
+      "defaults": "Inline formatted item text.",
+      "description": "Place text before child ul/ol lists; text after a child list is rejected.",
+      "example": "<li>Item text<ul><li>Nested text</li></ul></li>"
+    },
+    {
+      "name": "table",
+      "context": "Supported regions/containers, outside another table",
+      "attributes": {
+        "column-weights": "Comma-separated positive finite relative column weights",
+        "row-keep": "auto, prefer or always"
+      },
+      "defaults": "Equal weights; ordinary row keeps prefer keeping a row together; optional theme table appearance.",
+      "description": "One optional repeating thead row plus body rows. Define tbody for grouped rows. Spans must occupy a valid grid. No nested tables/page breaks, including through components.",
+      "example": "<table column-weights=\"2,1\"><thead><tr><th>Item</th><th>Price</th></tr></thead><tbody><tr><td>Service</td><td>12.50</td></tr></tbody></table>"
+    },
+    {
+      "name": "thead",
+      "context": "Child of table",
+      "attributes": {},
+      "defaults": "Optional repeating header section.",
+      "description": "Exactly one logical tr header row; th/td cells may span columns. Header and body span grids are independent. Keep rules intended for body rows are rejected in headers. The keep-together attribute is rejected on thead.",
+      "example": "<thead><tr><th>Item</th><th>Price</th></tr></thead>"
+    },
+    {
+      "name": "tbody",
+      "context": "Child of table",
+      "attributes": {
+        "keep-together": "auto, prefer or always; applies to this body row group"
+      },
+      "defaults": "Body row group; optional inherited cell/text appearance.",
+      "description": "Multiple groups can define explicit row grouping. Spans must stay within their legal grid/group constraints.",
+      "example": "<tbody keep-together=\"prefer\"><tr><td>Related row</td></tr></tbody>"
+    },
+    {
+      "name": "tr",
+      "context": "Direct child of thead/tbody or supported table structure",
+      "attributes": {
+        "row-keep": "auto, prefer or always; body rows only",
+        "keep-with-next": "auto, prefer or always; body rows only"
+      },
+      "defaults": "Inherits table row policy.",
+      "description": "Direct th/td cells only. Template data-each/data-as/data-if may select or repeat real rows. Header row keep overrides are rejected.",
+      "example": "<tr row-keep=\"prefer\"><td>Value</td><td>12.50</td></tr>"
+    },
+    {
+      "name": "th",
+      "context": "Direct child of tr",
+      "attributes": {
+        "colspan": "Positive integer number of columns",
+        "rowspan": "Positive integer number of rows"
+      },
+      "defaults": "1 × 1; th has bold semantic default below named/explicit overrides.",
+      "description": "Either inline text or supported rich blocks. Borders/padding/background/vertical alignment inherit by field. Text mixed with child block elements is rejected.",
+      "example": "<th colspan=\"2\"><p>Spanning cell</p><ul><li>Detail</li></ul></th>"
+    },
+    {
+      "name": "td",
+      "context": "Direct child of tr",
+      "attributes": {
+        "colspan": "Positive integer number of columns",
+        "rowspan": "Positive integer number of rows"
+      },
+      "defaults": "1 × 1; th has bold semantic default below named/explicit overrides.",
+      "description": "Either inline text or supported rich blocks. Borders/padding/background/vertical alignment inherit by field. Text mixed with child block elements is rejected.",
+      "example": "<td colspan=\"2\"><p>Spanning cell</p><ul><li>Detail</li></ul></td>"
+    },
+    {
+      "name": "canvas",
+      "context": "Supported block flow",
+      "attributes": {
+        "width-mm": "Optional finite positive width; defaults to available region width",
+        "height-mm": "Required finite positive canvas height"
+      },
+      "defaults": "Coordinates start at the canvas upper-left corner within body flow.",
+      "description": "Bounded indivisible flow unit containing positioned box children. Boxes must fit; overlaps are intentional in list paint order. No automatic splitting, browser absolute positioning or page breaks.",
+      "example": "<canvas width-mm=\"160\" height-mm=\"30\"><box id=\"address\" x-mm=\"0\" y-mm=\"0\" width-mm=\"75\" height-mm=\"25\"><p>Example address</p></box></canvas>"
+    },
+    {
+      "name": "columns",
+      "context": "Supported block flow",
+      "attributes": {
+        "gap-mm": "Finite nonnegative gap between columns"
+      },
+      "defaults": "0 mm gap; independent columns.",
+      "description": "Column children split the available width by weight and can flow across pages. No automatic text threading/balancing; no explicit page breaks inside columns.",
+      "example": "<columns gap-mm=\"6\"><column weight=\"2\"><p>Main text</p></column><column weight=\"1\"><p>Side text</p></column></columns>"
+    },
+    {
+      "name": "column",
+      "context": "Direct child of columns",
+      "attributes": {
+        "weight": "Finite positive relative width"
+      },
+      "defaults": "Weight 1.",
+      "description": "Independent supported block content and local style. A wider weight does not cause text to flow from another column.",
+      "example": "<column weight=\"2\"><p>Column content</p></column>"
+    },
+    {
+      "name": "box",
+      "context": "Flowing block, or positioned direct child of canvas",
+      "attributes": {
+        "id": "Canvas box only: Required unique nonblank stable identifier",
+        "x-mm": "Canvas box: finite nonnegative x; defaults to 0",
+        "y-mm": "Canvas box: finite nonnegative y; defaults to 0",
+        "width-mm": "Canvas box only: Required finite positive item width",
+        "height-mm": "Canvas box only: Required finite positive item height"
+      },
+      "defaults": "Ordinary flowing content with optional decoration.",
+      "description": "Supports padding, background-color, border and per-edge borders alongside inherited typography. No general browser box model. Inside canvas, box instead declares a bounded positioned rectangle with a unique id, explicit width/height and optional x/y. Its rich content must fit; no page breaks. Decoration CSS applies to flowing box, not the positioned canvas wrapper.",
+      "example": "<box style=\"padding:3mm; border:0.5pt solid #12665B; background-color:#F0F7F4\"><p>Important information</p></box>"
+    },
+    {
+      "name": "component",
+      "context": "Supported block content",
+      "attributes": {
+        "ref": "Required name registered through components(...) or the shared model"
+      },
+      "defaults": "Expands document-local reusable blocks before validation.",
+      "description": "Empty element with a paired closing tag. Unknown references and reference cycles fail. Context rules still apply to expanded content.",
+      "example": "<component ref=\"legal\"></component>"
+    },
+    {
+      "name": "param",
+      "context": "Inline template content; template mode only",
+      "attributes": {
+        "key": "Required scalar map path",
+        "format": "text, date, number or currency",
+        "pattern": "Optional formatter pattern",
+        "currency": "Optional ISO currency override"
+      },
+      "defaults": "text formatting unless selected; final template locale applies.",
+      "description": "Void HTML tag, no closing tag, children or style/style-name. Wrap with span/strong for styling. Substitution creates literal text, never markup. Supported input type must match the format.",
+      "example": "<p>Total: <strong><param key=\"total\" format=\"currency\" currency=\"EUR\"></strong></p>"
+    },
+    {
+      "name": "if",
+      "context": "Template content outside table structure",
+      "attributes": {
+        "flag": "Required map path to an actual Boolean"
+      },
+      "defaults": "Selects true branch or direct else branch; no expressions/truthiness.",
+      "description": "Only flag is permitted. Use data-if on real table rows/cells. Inactive branches do not require their values/assets.",
+      "example": "<if flag=\"showNotice\"><p>Notice</p><else><p>Standard text</p></else></if>"
+    },
+    {
+      "name": "else",
+      "context": "One direct child of if",
+      "attributes": {},
+      "defaults": "Selected when flag is false.",
+      "description": "No attributes, including style/style-name. Must be unique and in the supported final branch position.",
+      "example": "<if flag=\"showNotice\"><p>Notice</p><else><p>Standard text</p></else></if>"
+    }
+  ],
+  "css": [
+    {
+      "name": "font-family",
+      "values": "One exact standard or registered family name; quoted single family allowed",
+      "context": "Text and inherited region/block scopes",
+      "default": "Helvetica",
+      "notes": "No comma-separated fallback list; configure fallback families in DocumentSettings."
+    },
+    {
+      "name": "font-size",
+      "values": "Positive finite pt/mm/px length; nonzero unitless values are rejected",
+      "context": "Text",
+      "default": "11 pt body; typed Heading 14 pt; HTML headings have level-specific defaults",
+      "notes": "1 pt = 1/72 inch; 1 px = 1/96 inch."
+    },
+    {
+      "name": "color",
+      "values": "#RGB, #RRGGBB, black, white, gray, grey, red, green, blue, navy, teal",
+      "context": "Text",
+      "default": "black",
+      "notes": ""
+    },
+    {
+      "name": "font-weight",
+      "values": "normal, bold, 400, 700",
+      "context": "Text",
+      "default": "normal",
+      "notes": "Required font face must be registered or standard; no synthesis."
+    },
+    {
+      "name": "font-style",
+      "values": "normal or italic",
+      "context": "Text",
+      "default": "normal",
+      "notes": ""
+    },
+    {
+      "name": "text-decoration",
+      "values": "none or underline",
+      "context": "Text",
+      "default": "none",
+      "notes": ""
+    },
+    {
+      "name": "text-align",
+      "values": "left, center, right, justify",
+      "context": "Paragraph/block text",
+      "default": "left",
+      "notes": "Independent from header rectangle placement; header align attribute excludes justify."
+    },
+    {
+      "name": "line-height",
+      "values": "Positive finite unitless multiplier",
+      "context": "Text",
+      "default": "1.2",
+      "notes": "Not CSS px/pt line-height."
+    },
+    {
+      "name": "margin-top",
+      "values": "Nonnegative mm/pt/px length; unitless zero",
+      "context": "Text blocks",
+      "default": "0",
+      "notes": "Apply to p/div or individual blocks, not region wrappers."
+    },
+    {
+      "name": "margin-bottom",
+      "values": "Nonnegative mm/pt/px length; unitless zero",
+      "context": "Text blocks",
+      "default": "0",
+      "notes": ""
+    },
+    {
+      "name": "keep-together",
+      "values": "auto, prefer, always",
+      "context": "Blocks/groups",
+      "default": "Ordinary block policy; group uses a soft keep",
+      "notes": "Always can fail when content cannot fit."
+    },
+    {
+      "name": "keep-with-next",
+      "values": "auto, prefer, always",
+      "context": "Blocks",
+      "default": "Ordinary block policy; headings keep with next",
+      "notes": ""
+    },
+    {
+      "name": "widows",
+      "values": "Positive integer",
+      "context": "Paragraphs",
+      "default": "Native default unless configured",
+      "notes": ""
+    },
+    {
+      "name": "orphans",
+      "values": "Positive integer",
+      "context": "Paragraphs",
+      "default": "Native default unless configured",
+      "notes": ""
+    },
+    {
+      "name": "background-color",
+      "values": "Supported named or hexadecimal color",
+      "context": "Tables/cells and decorated box",
+      "default": "No fill",
+      "notes": "Not allowed on ordinary paragraphs/spans/images."
+    },
+    {
+      "name": "width",
+      "values": "Positive mm/pt/px/% length; unitless pixels",
+      "context": "img only",
+      "default": "Fitting policy for containing region",
+      "notes": "CSS overrides width attribute; not for tables or canvas."
+    },
+    {
+      "name": "height",
+      "values": "Positive mm/pt/px/% length; unitless pixels",
+      "context": "img only",
+      "default": "Fitting policy for containing region",
+      "notes": ""
+    },
+    {
+      "name": "padding",
+      "values": "One, two or four nonnegative lengths (mm/pt/px; zero unitless)",
+      "context": "Table appearance and box",
+      "default": "Native/table theme defaults",
+      "notes": "Two values mean vertical/horizontal; four mean top/right/bottom/left; three-value form unsupported."
+    },
+    {
+      "name": "border",
+      "values": "none or width style color, e.g. 0.5pt solid #222222",
+      "context": "Table appearance and box",
+      "default": "Native/table theme defaults",
+      "notes": "Supported styles: solid, dashed, dotted; use full declaration, no browser shorthand inference."
+    },
+    {
+      "name": "vertical-align",
+      "values": "top, middle or bottom",
+      "context": "Table appearance",
+      "default": "Native/table theme defaults",
+      "notes": ""
+    },
+    {
+      "name": "border-top",
+      "values": "none or width style color",
+      "context": "box only",
+      "default": "Inherits box border",
+      "notes": "Per-edge overrides are not table-cell CSS properties."
+    },
+    {
+      "name": "border-right",
+      "values": "none or width style color",
+      "context": "box only",
+      "default": "Inherits box border",
+      "notes": "Per-edge overrides are not table-cell CSS properties."
+    },
+    {
+      "name": "border-bottom",
+      "values": "none or width style color",
+      "context": "box only",
+      "default": "Inherits box border",
+      "notes": "Per-edge overrides are not table-cell CSS properties."
+    },
+    {
+      "name": "border-left",
+      "values": "none or width style color",
+      "context": "box only",
+      "default": "Inherits box border",
+      "notes": "Per-edge overrides are not table-cell CSS properties."
+    }
+  ],
+  "commonAttributes": {
+    "style": "Supported inline CSS only; no external selectors.",
+    "style-name": "A named style registered in the document theme; explicit local values win.",
+    "data-if": "Template-only Boolean map path on an ordinary parsed element; removed before markup validation.",
+    "data-each": "Template-only List map path on tr or supported block/list/item/image/component elements; clones trusted nodes.",
+    "data-as": "Required simple alias with data-each; letters/underscore then letters/digits/underscore."
+  }
+}

@@ -1,0 +1,12 @@
+---
+import { Tabs, TabItem, Code } from '@astrojs/starlight/components';
+import ExamplePreview from './ExamplePreview.astro';
+import { energySources } from '../data/examples.mjs';
+const variants = [
+  { label: 'Fluent Java', name: 'energy-fluent-letter', source: energySources.fluent, lang: 'java' },
+  { label: 'Typed Java', name: 'energy-reference-letter', source: energySources.typed, lang: 'java' },
+  { label: 'JSON', name: 'energy-json-letter', source: energySources.json, lang: 'json' },
+  { label: 'HTML', name: 'energy-template-letter', source: energySources.html, lang: 'html' },
+];
+---
+<Tabs syncKey="letter-api">{variants.map((variant) => <TabItem label={variant.label}><ExamplePreview name={variant.name} title={`Energy letter using ${variant.label}`} /><details><summary>View complete {variant.label} input</summary><Code code={variant.source} lang={variant.lang} /></details></TabItem>)}</Tabs>

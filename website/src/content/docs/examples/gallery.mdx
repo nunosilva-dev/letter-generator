@@ -1,0 +1,56 @@
+---
+title: Example gallery
+description: Inspect actual PDFs and generated previews, then download complete public API examples.
+sidebar:
+  order: 2
+---
+
+import ExamplePreview from '../../../components/ExamplePreview.astro';
+
+These previews come from accepted test renders. Open a PDF to inspect selectable text, links and all pages. They are static examples, not a live editor. All personal/business content in the energy example is fictional.
+
+## First letter
+
+Use the [quickstart](/start/quickstart/) to generate this result with any of the four APIs.
+
+<ExamplePreview name="quickstart-fluent" title="Minimal letter" />
+
+[Typed output](/examples/quickstart-typed.pdf) · [Fluent output](/examples/quickstart-fluent.pdf) · [JSON output](/examples/quickstart-json.pdf) · [HTML output](/examples/quickstart-html.pdf)
+
+## Complete energy letter
+
+Follow the [four-API walkthrough](/examples/energy-letter/) for full inputs, assets and instructions.
+
+<ExamplePreview name="energy-template-letter" title="Fictional energy-price letter" />
+
+## Themes, rich tables and pagination
+
+This example combines reusable components, first/continuation headers, current/total page fields, merged rich cells, row policies and a final-page signature. See [themes](/guides/themes-components/), [tables](/guides/tables-lists/) and [pagination](/guides/text-pagination/).
+
+<ExamplePreview name="composition-features" title="Composed letter with shared styles and rich content" />
+
+## Declared layout diagnostics
+
+Debug outlines show allocated margins, body, fixed elements and reserved regions. They do not report the measured box of every flowing block. See [diagnostics](/guides/diagnostics/).
+
+<ExamplePreview name="composition-debug" title="Declared-region debug preview" />
+
+## Semantic authoring and typed data
+
+Semantic letter parts, locale-aware formatting, conditions and repeated content are demonstrated together. See [semantic parts](/guides/semantic-parts/), [localization](/guides/localization/) and [template data](/guides/template-data/).
+
+<ExamplePreview name="v1-authoring" title="Data-driven semantic letter" />
+
+## Positioned layout and PDF appendix
+
+The pack contains two generated letter pages followed by one existing PDF page. It combines SVG stationery, bounded positioned addresses, columns, nested lists, decorated boxes and a final-letter-page signature. See [containers](/guides/layout-containers/) and [PDF packs](/guides/pdf-packs/).
+
+<ExamplePreview name="v1-layout-pack" title="Layout pack: first letter page" />
+
+[Second letter page preview](/examples/v1-layout-pack-2.png) · [Appended PDF page preview](/examples/v1-layout-pack-3.png) · [Complete three-page PDF](/examples/v1-layout-pack.pdf)
+
+## Downloads and reproduction
+
+[Download the standalone Maven example project](/downloads/letter-generator-examples.zip) for the four quickstarts and full energy example. The advanced gallery PDFs above demonstrate additional feature combinations; their detailed authoring instructions are in the linked feature guides and the source checkout integration tests.
+
+Maintainers regenerate previews using `./mvnw clean verify` from the library root, followed by the [website preparation/build commands](/support/documentation-build/). Gallery outputs are generated artifacts rather than hand-edited illustrations.

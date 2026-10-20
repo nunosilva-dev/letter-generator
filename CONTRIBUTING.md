@@ -124,7 +124,7 @@ To add a top-level tag to the library:
 1. Implement `TemplateTagHandler` in the same package. Return the lowercase tag name from `tagName()`; override `required()` only when every letter must include it.
 2. In `handle(Element, TemplateContext)`, validate the tag's attributes and content with `MarkupSupport`, then contribute to the per-call builder. Keep its defaults and tag-specific rules in this handler. Use `TemplateBlocks` for existing styled text/image/table content and `TemplateImages` for a single-image region.
 3. Add one handler instance to `TemplateTagRegistry.standard()`. Registration order defines execution order, independently of source order. Preserve the logo's early sizing before header layout. The registry derives its supported vocabulary from registrations and rejects unknown tags, duplicate region identities, missing required regions and duplicate handler registrations. Header/footer identities include their page selector; override `regionKey(Element)` for another region that intentionally permits disjoint variants.
-4. Add tests for the new region's observable model/PDF output, invalid inputs, styles/assets and interactions with existing regions. Update the supported markup instructions in README.md.
+4. Add tests for the new region's observable model/PDF output, invalid inputs, styles/assets and interactions with existing regions. Update website/src/data/markup-reference.json and the focused website guides; run the reference coverage check.
 
 Handlers receive `TemplateContext` for the current builder, parsed `TemplatePage` and named assets. Do not retain or mutate input nodes/assets or store per-letter state in handlers: the immutable registry is reused across compilation calls. Shared content readers preserve the existing markup validation and asset allowlist.
 
@@ -132,9 +132,11 @@ This registry covers top-level letter regions. Tags nested inside a region belon
 
 ## Layout and documentation
 
-Resolve header geometry only after final page, margin and fitted-logo settings. Use the shared geometry tolerance for floating-point boundaries, preserve automatic logo gaps, and keep exact box placement independent of content alignment. Public convenience APIs and template attributes must have matching instructions in [README.md](README.md) and runnable examples. The default generator uses PDF standard fonts; do not describe test-only font files as bundled production resources.
+Resolve header geometry only after final page, margin and fitted-logo settings. Use the shared geometry tolerance for floating-point boundaries, preserve automatic logo gaps, and keep exact box placement independent of content alignment. Public convenience APIs and template attributes must have matching instructions in [the website manual](website/README.md) and runnable examples. The default generator uses PDF standard fonts; do not describe test-only font files as bundled production resources.
 
-Maintain the complete user guide in README.md. Keep internal plans and implementation notes in the ignored docs/ directory.
+Maintain the complete user guide in website/src/content/docs/. The README is an installation/quickstart entry point. Keep internal plans and implementation notes in the ignored docs/ directory.
+
+For documentation changes run the Java acceptance build, then `pnpm verify` from website/. Canonical complete quickstarts under src/test/resources/documentation are compiled and rendered by DocumentationExamplesTest; the site imports their source directly. Markup reference coverage is checked against parser vocabulary, and the JSON field reference is generated from reachable public model records. Generated site/download assets include approved example code and public Javadocs, without library implementation sources or internal Javadocs.
 
 ## Composition and diagnostics
 

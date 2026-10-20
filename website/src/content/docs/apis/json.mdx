@@ -1,0 +1,79 @@
+---
+title: "JSON input"
+description: "Letter Generator usage: json input."
+---
+
+import { Code } from '@astrojs/starlight/components';
+import { quickstarts, runners } from '../../../data/examples.mjs';
+
+## Complete first integration
+
+The following input and Java runner are the exact resources used by the documentation integration test. Save the input under `src/main/resources/letters/hello.json`, or [download the complete runnable Maven project](/downloads/letter-generator-examples.zip).
+
+<Code code={quickstarts.json} lang="json" title="Complete input document" />
+<Code code={runners.json} lang="java" title="Complete Java runner" />
+
+`Letter.fromJson(source)` parses a shared document model; `generateJson(source)` renders to bytes and `renderJson(source, options)` adds output choices and a rendering report. Parsing alone does not validate semantic requirements or establish layout fit. The JSON literal `null` can parse to a null model, which generation rejects.
+
+Use the [complete JSON field/enum reference](/reference/json-model/) for all reachable document types and discriminators. JSON does not perform placeholder substitution or include HTML directives; supply the final structural model.
+
+
+
+```java
+byte[] pdf = generator.generateJson(Files.readString(Path.of("letter.json")));
+```
+
+Minimal JSON:
+
+```json
+{
+  "schemaVersion": 1,
+  "sections": [{
+    "name": "body",
+    "blocks": [{
+      "type": "paragraph",
+      "runs": [{"text": "Olá João, request received."}]
+    }]
+  }]
+}
+```
+
+`Letter.fromJson(json)` parses JSON into the shared model for `validate(...)`, copy methods or `render(...)`. `generator.renderJson(json[, options])` returns the same rendering report and profile choices as the other APIs. `generateJson(json)` retains the byte-only standard path. JSON maps to the immutable model, not the HTML template format. It has no placeholder substitution pass. Enums use uppercase names. Block `type` values are `paragraph`, `heading`, `list`, `image`, `table`, `pageBreak`, `group`, `component`, `letterPart`, `canvas`, `columns` and `box`; watermark `kind` is `text` or `image`. Image `data` is Base64. Unknown fields/discriminators, duplicate keys, malformed JSON, trailing documents, scalar coercion, numeric enum ordinals and fractional schema versions are rejected.
+
+Optional model fields may be omitted or null and use their documented defaults. Required fields produce a field-path error. See the [model constructor reference](/reference/java-api/) and public records for full structured input. Do not treat external Java class names as JSON discriminators.
+
+### Structured list, table and watermark examples
+
+A list block contains an array of items, each represented by an array of text runs:
+
+```json
+{"type":"list","ordered":true,"items":[[{"text":"First"}],[{"text":"Second"}]]}
+```
+
+A table block can specify styles and backgrounds per cell:
+
+```json
+{"type":"table","columnWeights":[2,1],
+ "header":[
+   {"runs":[{"text":"Component"}],"backgroundColor":"#10384A","style":{"color":"#FFFFFF"}},
+   {"runs":[{"text":"Price"}],"backgroundColor":"#10384A","style":{"color":"#FFFFFF"}}],
+ "rows":[[
+   {"runs":[{"text":"Energy (€/kWh)"}]},
+   {"runs":[{"text":"0,1632"}]}]]}
+```
+
+For a text watermark, put this object in the document's `watermark` property:
+
+```json
+{"kind":"text","text":"DRAFT","fontFamily":"Helvetica","fontSizePt":60,
+ "color":"#808080","pages":"ALL","opacity":0.2,"rotationDegrees":35}
+```
+
+An image watermark uses Base64 bytes and an explicit millimeter box:
+
+```json
+{"kind":"image","data":"BASE64_PNG_OR_JPEG","mimeType":"image/png",
+ "widthMm":80,"heightMm":40,"pages":"FIRST","opacity":0.15,"rotationDegrees":10}
+```
+
+Links permit `http`, `https` and `mailto`. Document text is escaped before internal FO construction; external XML entity loading and document-controlled filesystem/network resource access are disabled.

@@ -1,0 +1,66 @@
+---
+title: Fluent Java
+description: Compose letters with readable chains, useful defaults and typed escape hatches.
+sidebar:
+  order: 1
+---
+
+import { Code } from '@astrojs/starlight/components';
+import { quickstarts } from '../../../data/examples.mjs';
+
+Use `Letter.builder()` when Java code assembles the letter. It starts with A4 defaults and offers chains for content, regions, layout and reusable styling. The final result is the same immutable model used by every API.
+
+## Complete starting point
+
+<Code code={quickstarts.fluent} lang="java" title="FluentQuickstart.java" />
+
+[Download this source](/downloads/quickstarts/java/FluentQuickstart.java) or the [complete Maven project](/downloads/letter-generator-examples.zip).
+
+## Assemble a letter
+
+The focused snippets below assume imports for the named public types. The [Java API reference](/reference/java-api/) lists signatures and overloads; Javadoc provides exact contracts.
+
+```java
+var letter = Letter.builder()
+    .page(PageSize.A4)
+    .marginsMm(20)
+    .subject("Account update")
+    .salutation("Dear Alex,")
+    .body("Your first paragraph.\nA forced line change.\n\nA second paragraph.")
+    .body(Letter.PAGE_BREAK, "Content on the next page.")
+    .table(Table.builder("Item", "Amount").row("Service", "12.50").build())
+    .signature(TextSignature.of("Customer Services"))
+    .signaturePlacement(SignaturePlacement.BOTTOM_LAST)
+    .signatureHeightMm(20)
+    .footer("Example Company")
+    .build();
+```
+
+Plain `body(...)` text distinguishes line changes, blank-line paragraphs and body page breaks. It does not interpret HTML. Use `bodyHtml(...)` only for the supported markup vocabulary and explicitly supplied assets.
+
+Body calls append; replaceable regions such as header/footer/signature and semantic roles use their documented replacement behavior. First/following-page overloads let you configure stationery variants. Fluent/HTML semantic roles have a conventional order around the body; typed block order is available when you need exact arbitrary sequencing.
+
+## Apply reusable configuration
+
+Set `.theme(companyTheme)` for role/named defaults and `.component(name, fragment)` for document-local fragments. `.style(...)` applies document overrides. Child/block/run properties can override inherited values, including explicit false/zero values. Builders defer some region compilation until final page/theme settings are known, so a final theme still governs earlier authored region content.
+
+Use [themes/components](/guides/themes-components/), [company stationery](/guides/company-stationery/) and [style inheritance](/guides/styling/).
+
+## Mix convenient and explicit construction
+
+`.block(block)` accepts a public typed block; `.group(...)` and `.table(...)` support richer content. `Canvas.builder(...)` helps create a bounded positioned layout. Advanced cells, table policies or columns can use explicit model values while the surrounding letter remains fluent.
+
+Do not place explicit page breaks in tables, fixed/signature regions or indivisible canvases/columns. Keep rules express intent; impossible strict constraints can reject layout instead of shrinking text silently.
+
+## Render and inspect
+
+```java
+var generator = new LetterPdfGenerator();
+var result = generator.render(letter);
+Files.write(Path.of("letter.pdf"), result.pdfBytes());
+int pages = result.pageCount();
+```
+
+`build()` snapshots the current builder. Subsequent changes do not mutate that document. Builders are mutable and should stay on one thread; generators can be reused concurrently. `validate(letter)` checks semantic input without layout, while `render` establishes actual pagination.
+
+Continue with the [complete fluent energy letter](/examples/energy-letter/), [pagination](/guides/text-pagination/), [rich tables](/guides/tables-lists/) and [diagnostics](/guides/diagnostics/).

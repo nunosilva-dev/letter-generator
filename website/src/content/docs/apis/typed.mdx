@@ -1,0 +1,51 @@
+---
+title: Typed Java model
+description: Construct immutable documents explicitly with the shared public records and sealed block hierarchy.
+sidebar:
+  order: 2
+---
+
+import { Code } from '@astrojs/starlight/components';
+import { quickstarts } from '../../../data/examples.mjs';
+
+Use typed values when your application needs complete model control or constructs content from another authoring tool. `LetterDocument` contains the page, document defaults, ordered sections, fixed regions, optional signature/watermark, theme/components, settings and attachments.
+
+## Complete starting point
+
+<Code code={quickstarts.typed} lang="java" title="TypedQuickstart.java" />
+
+Null optional page/style values select documented defaults/inheritance. `LetterDocument.SUPPORTED_SCHEMA_VERSION` is the accepted schema version; it is independent of the Maven artifact version.
+
+## Model map
+
+| Area | Public values |
+| --- | --- |
+| Document | `LetterDocument`, `Section`, `DocumentSettings`, `DocumentMetadata` |
+| Body content | `Paragraph`, `Heading`, `ListBlock`, `ImageBlock`, `TableBlock`, `GroupBlock`, `ComponentBlock`, `LetterPartBlock`, `CanvasBlock`, `ColumnsBlock`, `BoxBlock`, `PageBreakBlock` |
+| Text | `TextRun`, `PageNumber`, `ListItem`, `Style` |
+| Physical layout | `PageSpec`, `Margins`, `PageSize`, `PageDimensions`, `Bounds`, `FixedElement`, `PageSelector`, `Zone` |
+| Rich tables | `TableCell`, `TableOptions`, `TableRowPolicy`, `TableRowGroup`, `CellAppearance`, `Padding`, `Border` |
+| Reuse | `LetterTheme`, `StyleRole`, `TableAppearance`, `Stationery`, `LetterComponent` |
+| Other regions | `Signature`, `SignaturePlacement`, `TextWatermark`, `ImageWatermark` |
+
+The [field-by-field model reference](/reference/json-model/) and [public Javadocs](/api/index.html) describe every record property and enum. The same field structure is used by JSON.
+
+## Ordering and inheritance
+
+Sections preserve their supplied order. Their names are labels rather than reserved layout positions. Within a section, blocks preserve author order. Semantic `LetterPartBlock` values likewise retain their supplied positions; the typed model does not reorder them using fluent semantic-role conventions.
+
+Styles are sparse overrides. Null inherits, while explicit `false`, `0` or an explicit enum value overrides the lower layer where allowed. Named styles/components resolve within the document before validation. Fixed regions/signatures have no section-style ancestor.
+
+## Coordinates and content
+
+Most physical geometry is in millimeters; font/border widths use points. Bounds specify x/y/width/height, with their origin determined by the containing value. Fixed elements use inner-page top/bottom zones; canvas items use the canvas origin; diagnostic debug boxes use the physical page's upper-left corner. See [fixed regions](/guides/fixed-regions/) and [layout containers](/guides/layout-containers/).
+
+Table cells contain inline runs **or** rich blocks, not both. Model records are immutable snapshots, but constructors generally defer semantic validation. Valid Java construction alone does not establish font coverage, asset validity, table grid consistency or content fit.
+
+## Validate, render and reuse
+
+Use the configured generator for both validation and rendering so registered fonts and dictionaries match. `validate(document)` returns the first semantic error without performing layout. `render(document)` returns owned PDF bytes, the accepted page count, diagnostics and part ranges. It throws on a rejected layout and returns no partial PDF.
+
+Reuse immutable documents concurrently with a shared configured generator. Collection/image/attachment ownership rules prevent later application mutations from altering an already built document.
+
+Compare the [typed energy example](/examples/energy-letter/) with the other APIs before choosing this lower-level route for an entire application.

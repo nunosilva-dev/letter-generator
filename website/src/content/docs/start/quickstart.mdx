@@ -1,0 +1,52 @@
+---
+title: Your first letter
+description: Generate a real PDF using complete, tested examples for all four APIs.
+sidebar:
+  order: 4
+---
+
+import { Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import ApiExamples from '../../../components/ApiExamples.astro';
+import ExamplePreview from '../../../components/ExamplePreview.astro';
+import { quickstarts, runners } from '../../../data/examples.mjs';
+
+First [make the library available to your build](/start/installation/). These examples use the no-argument generator and engine-provided standard fonts. No font/image assets or framework configuration are required.
+
+## Choose an input
+
+The Java tabs contain complete runnable programs. The JSON and HTML tabs contain complete resource files used by the runners below. These exact inputs are compiled/rendered by the project's documentation integration test.
+
+<ApiExamples {...quickstarts} />
+
+## Run JSON or HTML from Java
+
+Save the resource above as `src/main/resources/letters/hello.json` or `hello.html`. The HTML value map supplies literal text to `${message}`; it does not insert markup.
+
+<Tabs syncKey="letter-api">
+  <TabItem label="JSON"><Code code={runners.json} lang="java" title="JsonQuickstart.java" /></TabItem>
+  <TabItem label="HTML"><Code code={runners.html} lang="java" title="HtmlQuickstart.java" /></TabItem>
+</Tabs>
+
+## Build and run
+
+The [example ZIP](/downloads/letter-generator-examples.zip) already contains all four programs and their resources. In the extracted directory:
+
+```sh
+mvn package dependency:copy-dependencies
+java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' FluentQuickstart
+```
+
+Use `TypedQuickstart`, `JsonQuickstart` or `HtmlQuickstart` for the other routes. Windows uses `;` between classpath entries. Each writes `letter.pdf`, or the first supplied argument. The parent directory of a chosen output path must exist.
+
+<ExamplePreview name="quickstart-fluent" title="Your first generated letter" caption="All four quickstarts produce the same one-page message with selectable PDF text." />
+
+## What happens at each step
+
+1. Authoring creates content and styles. The typed/JSON routes supply the immutable model structure explicitly.
+2. `build()` resolves builder configuration into a document; it does not generate PDF bytes.
+3. `generate(...)` prepares themes/components, validates input and performs real pagination/layout.
+4. `Files.write(...)` belongs to your application; the library itself returns owned PDF bytes.
+
+Use `generator.render(document)` when you need the actual page count and diagnostics. Reuse the generator across calls; use a fresh mutable builder for each authoring operation. Invalid input or rejected layout throws without returning a partial PDF.
+
+Continue with [API guides](/start/choose-api/), [styled text](/guides/styling/), [headers](/guides/headers/) or the [energy-letter walkthrough](/examples/energy-letter/).

@@ -1,0 +1,29 @@
+---
+title: CSS, units and inheritance
+description: All supported inline styles, where they apply, accepted values and physical conversions.
+sidebar:
+  order: 2
+---
+
+import CssReference from '../../../components/CssReference.astro';
+
+Styles are inline declarations such as `style="font-size:11pt;color:#12665B"`. Later duplicate declarations override earlier ones. Property names are normalized; values must match the finite supported grammar. There is no stylesheet/class/selector cascade, `!important`, CSS variable evaluation, flexbox or grid.
+
+## Physical units
+
+- Model geometry and `*-mm` attributes use numeric millimeters without a unit suffix.
+- Font sizes accept explicit `pt`, `mm` or `px`. Nonzero unitless CSS font sizes are rejected.
+- CSS margins/padding accept `mm`, `pt`, `px` and unitless zero.
+- Image dimensions additionally accept percentages and unitless pixels; percentages use the containing region's available dimensions.
+- 1 inch = 25.4 mm = 72 pt = 96 CSS px. A line-height value is a multiplier, not a physical length.
+- Physical coordinates and dimensions must be finite; content must fit its available geometry.
+
+## Inheritance
+
+Builtin/tag defaults sit below document-local theme/named styles and explicit ancestor/local values. Null model fields inherit. Explicit false/normal/none/zero/AUTO values remain meaningful overrides. Paragraph margins and pagination controls do not automatically propagate from a container to every child. Use named styles for reuse, with local overrides where needed.
+
+Typography belongs to text; cell appearance belongs to tables/cells; decorated boxes expose their own background/padding/borders. A property accepted on one kind of element is not necessarily accepted everywhere.
+
+## Property reference
+
+<CssReference />

@@ -1,0 +1,11 @@
+---
+import { Tabs, TabItem, Code } from '@astrojs/starlight/components';
+interface Props { typed: string; fluent: string; json: string; html: string; }
+const { typed, fluent, json, html } = Astro.props;
+---
+<Tabs syncKey="letter-api">
+  <TabItem label="Fluent Java"><Code code={fluent} lang="java" /></TabItem>
+  <TabItem label="Typed Java"><Code code={typed} lang="java" /></TabItem>
+  <TabItem label="JSON"><Code code={json} lang="json" /></TabItem>
+  <TabItem label="HTML"><Code code={html} lang="html" /></TabItem>
+</Tabs>

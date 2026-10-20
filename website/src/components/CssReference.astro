@@ -1,0 +1,4 @@
+---
+import catalogue from '../data/markup-reference.json';
+---
+{catalogue.css.map((property) => <section class="reference-entry"><h3 id={`css-${property.name}`}><code>{property.name}</code></h3><dl><dt>Values</dt><dd>{property.values}</dd><dt>Placement</dt><dd>{property.context}</dd><dt>Default</dt><dd>{property.default}</dd></dl>{property.notes && <p>{property.notes}</p>}</section>)}

@@ -1,0 +1,7 @@
+---
+import { Code } from '@astrojs/starlight/components';
+import catalogue from '../data/markup-reference.json';
+---
+<nav class="tag-index" aria-label="Tag index">{catalogue.tags.map((tag) => <a href={`#tag-${tag.name}`}><code>{tag.name}</code></a>)}</nav>
+{catalogue.tags.map((tag) => <section class="reference-entry"><h3 id={`tag-${tag.name}`}><code>&lt;{tag.name}&gt;</code></h3><dl><dt>Placement</dt><dd>{tag.context}</dd><dt>Defaults</dt><dd>{tag.defaults}</dd></dl><p>{tag.description}</p>{Object.keys(tag.attributes).length > 0 && <table><thead><tr><th>Attribute</th><th>Accepted input / meaning</th></tr></thead><tbody>{Object.entries(tag.attributes).map(([name,description]) => <tr><td><code>{name}</code></td><td>{description}</td></tr>)}</tbody></table>}<Code code={tag.example} lang="html" /></section>)}
+<style>.tag-index{display:flex;flex-wrap:wrap;gap:.5rem .9rem;padding-block:1rem}.tag-index a{font-size:.9rem}h3{scroll-margin-top:6rem}</style>

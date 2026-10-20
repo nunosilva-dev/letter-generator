@@ -1,0 +1,49 @@
+---
+title: Install the library
+description: Set up Java and Maven or Gradle, then obtain the current library artifact.
+sidebar:
+  order: 2
+---
+
+import { Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import { version } from '../../../../scripts/project.mjs';
+
+Use JDK 17 or a compatible newer JDK. The artifact targets Java 17. The runtime needs Java's `java.desktop` module for font/image support, even in headless deployments; retain it in reduced `jlink` runtimes.
+
+## Add the dependency
+
+The current version is a development snapshot. It must be installed locally or available in your configured repository before these dependency declarations resolve. There is no public-release availability claim in this guide.
+
+<Tabs syncKey="build-tool">
+  <TabItem label="Maven"><Code lang="xml" code={`<dependency>\n  <groupId>com.nsdev</groupId>\n  <artifactId>letter-generator</artifactId>\n  <version>${version}</version>\n</dependency>`} /></TabItem>
+  <TabItem label="Gradle"><Code lang="kotlin" code={`dependencies {\n    implementation("com.nsdev:letter-generator:${version}")\n}`} /></TabItem>
+</Tabs>
+
+The ordinary JAR has transitive runtime dependencies. Let your build tool resolve them; copying only the library JAR to a classpath is insufficient. The library uses Apache FOP for layout, PDFBox for supported PDF processing, jsoup for markup, Jackson for JSON and Commons Text for literal binding.
+
+## Build from an authorized source checkout
+
+From the library root:
+
+```sh
+./mvnw clean install
+```
+
+On Windows, use `mvnw.cmd clean install`. The checked-in wrapper downloads Maven 3.9.11, so global Maven installation is optional. The first build needs repository access; subsequent builds can use cached dependencies with `-o`.
+
+This checks formatting, compiles with warnings treated as errors, runs tests and Checkstyle, generates public Javadocs and installs binary/source/Javadoc artifacts in the local Maven repository. The current build creates actual implementation source artifacts; distribution settings remain a separate maintainer decision.
+
+## Use a complete example project
+
+[Download the runnable Maven examples](/downloads/letter-generator-examples.zip). The ZIP includes complete Java entry points, JSON/HTML inputs, fictional energy-letter artwork and licensed example fonts. Its only application dependency is the library artifact; no test helpers or implementation API are required.
+
+After making the artifact available:
+
+```sh
+mvn package dependency:copy-dependencies
+java -Djava.awt.headless=true -cp 'target/classes:target/dependency/*' FluentQuickstart
+```
+
+Run those commands in the extracted project. On Windows, replace the classpath `:` separator with `;`. The program writes `letter.pdf`; pass an output filename as its first argument to choose another location.
+
+Continue to [your first letter](/start/quickstart/) for all four input routes.
